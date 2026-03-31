@@ -7,7 +7,9 @@ import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 import ro.upt.eduplatform.service.BacExcelImportService;
 import ro.upt.eduplatform.service.EnExcelImportService;
+import ro.upt.eduplatform.service.StatisticsService;
 
+import java.util.List;
 import java.util.Map;
 
 @Slf4j
@@ -16,34 +18,96 @@ import java.util.Map;
 @RequiredArgsConstructor
 public class ApiController {
 
+    private final StatisticsService statisticsService;
+
     private final BacExcelImportService bacExcelImportService;
     private final EnExcelImportService enExcelImportService;
 
-    @PostMapping("/import/bac/{an}")
+    @PostMapping("/import/bac/{year}")
     public ResponseEntity<?> importBacExcel(
-            @PathVariable int an,
+            @PathVariable int year,
             @RequestParam("file") MultipartFile file) {
         try {
-            log.info("Import BAC {} solicitat, fisier: {}", an, file.getOriginalFilename());
-            int salvate = bacExcelImportService.importFromExcel(file.getInputStream(), an);
-            return ResponseEntity.ok(Map.of("an", an, "salvate", salvate));
+            log.info("Import BAC {} solicitat, fisier: {}", year, file.getOriginalFilename());
+            int salvate = bacExcelImportService.importFromExcel(file.getInputStream(), year);
+            return ResponseEntity.ok(Map.of("an", year, "salvate", salvate));
         } catch (Exception e) {
-            log.error("Eroare import BAC {}: {}", an, e.getMessage());
+            log.error("Eroare import BAC {}: {}", year, e.getMessage());
             return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
         }
     }
 
-    @PostMapping("/import/en/{an}")
+    @PostMapping("/import/en/{year}")
     public ResponseEntity<?> importEnExcel(
-            @PathVariable int an,
+            @PathVariable int year,
             @RequestParam("file") MultipartFile file) {
         try {
-            log.info("Import EN {} solicitat, fisier: {}", an, file.getOriginalFilename());
-            int salvate = enExcelImportService.importFromExcel(file.getInputStream(), an);
-            return ResponseEntity.ok(Map.of("an", an, "salvate", salvate));
+            log.info("Import EN {} solicitat, fisier: {}", year, file.getOriginalFilename());
+            int salvate = enExcelImportService.importFromExcel(file.getInputStream(), year);
+            return ResponseEntity.ok(Map.of("an", year, "salvate", salvate));
         } catch (Exception e) {
-            log.error("Eroare import EN {}: {}", an, e.getMessage());
+            log.error("Eroare import EN {}: {}", year, e.getMessage());
             return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
         }
+    }
+
+    @GetMapping("/statistici/{county}/{year}")
+    public ResponseEntity<?> statisticiJudet(
+            @PathVariable String county,
+            @PathVariable int year) {
+        var stats = statisticsService.calculateCountyStatistics(county, year);
+        if (stats == null) return ResponseEntity.notFound().build();
+        return ResponseEntity.ok(stats);
+    }
+
+    @GetMapping("/statistici/judete/{year}")
+    public ResponseEntity<List<StatisticsService.CountyStatistics>> comparatieJudete(
+            @PathVariable int year) {
+        return ResponseEntity.ok(statisticsService.compareCounties(year));
+    }
+
+    @GetMapping("/statistici/tendinte")
+    public ResponseEntity<List<StatisticsService.YearlyTrend>> tendinte() {
+        return ResponseEntity.ok(statisticsService.getLongitudinalTrends());
+    }
+
+    @GetMapping("/statistici/distributie/{county}/{year}")
+    public ResponseEntity<Map<String, Long>> distributieNote(
+            @PathVariable String county,
+            @PathVariable int year) {
+        return ResponseEntity.ok(statisticsService.getGradeDistribution(county, year));
+    }
+
+    @GetMapping("/meta/ani")
+    public ResponseEntity<List<Integer>> aniDisponibili() {
+        return ResponseEntity.ok(statisticsService.getAvailableBacYears());
+    }
+
+    @GetMapping("/meta/ani/en")
+    public ResponseEntity<List<Integer>> aniEnDisponibili() {
+        return ResponseEntity.ok(statisticsService.getAvailableEnYears());
+    }
+
+    @GetMapping("/meta/judete")
+    public ResponseEntity<List<String>> judeteDisponibile() {
+        return ResponseEntity.ok(statisticsService.getAvailableCounties());
+    }
+
+    // ═══════════════════════════════════════════════
+    // STATISTICI EN
+    // ═══════════════════════════════════════════════
+
+    @GetMapping("/statistici/en/{county}/{year}")
+    public ResponseEntity<?> statisticiEnJudet(
+            @PathVariable String county,
+            @PathVariable int year) {
+        var stats = statisticsService.calculateEnCountyStatistics(county, year);
+        if (stats == null) return ResponseEntity.notFound().build();
+        return ResponseEntity.ok(stats);
+    }
+
+    @GetMapping("/statistici/en/tendinte")
+    public ResponseEntity<List<StatisticsService.EnYearlyTrend>> tendinteLongitudinaleEn() {
+        return ResponseEntity.ok(statisticsService.getEnLongitudinalTrends());
     }
 }
