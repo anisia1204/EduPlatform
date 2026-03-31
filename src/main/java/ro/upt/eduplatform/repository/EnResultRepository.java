@@ -20,4 +20,15 @@ public interface EnResultRepository extends JpaRepository<EnResult, Long> {
 
     @Query("SELECT DISTINCT e.year FROM EnResult e ORDER BY e.year")
     List<Integer> findDistinctAni();
+    
+   @Query("SELECT e.county, AVG(e.average), COUNT(e) FROM EnResult e " +
+            "WHERE e.year = :year AND e.average IS NOT NULL AND e.county <> 'XX' " +
+            "GROUP BY e.county ORDER BY AVG(e.average) DESC")
+    List<Object[]> aggregateByCountyAndYear(@Param("year") Integer year);
+
+    @Query("SELECT AVG(e.average) FROM EnResult e WHERE e.year = :year AND e.average IS NOT NULL")
+    Double avgAverageByYear(@Param("year") Integer year);
+
+    @Query("SELECT COUNT(e) FROM EnResult e WHERE e.year = :year")
+    Long countByYear(@Param("year") Integer year);
 }
