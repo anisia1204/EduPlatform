@@ -5,6 +5,7 @@ import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestParam;
+import ro.upt.eduplatform.service.CorrelationService;
 import ro.upt.eduplatform.service.StatisticsService;
 
 @Controller
@@ -12,6 +13,7 @@ import ro.upt.eduplatform.service.StatisticsService;
 public class WebController {
 
     private final StatisticsService statisticsService;
+    private final CorrelationService correlationService;
 
     @GetMapping("/statistics/bac")
     public String bacStatistics(
@@ -47,6 +49,23 @@ public class WebController {
         model.addAttribute("availableCounties", statisticsService.getAvailableCounties());
         model.addAttribute("pageTitle", "National Evaluation — " + county.toUpperCase() + " " + year);
         return "en-statistics";
+    }
+
+    @GetMapping("/correlation")
+    public String correlation(
+            @RequestParam(required = false, defaultValue = "2019") Integer enYear,
+            Model model) {
+        var cohorts = correlationService.getAllCohortStatistics();
+        var countyStats = correlationService.getCountyStatisticsForCohort(enYear);
+        var evolution = correlationService.getEvolutionPerCounty(enYear);
+        var availableYears = correlationService.getCompleteEnYears();
+        model.addAttribute("cohorts", cohorts);
+        model.addAttribute("countyStats", countyStats);
+        model.addAttribute("evolution", evolution);
+        model.addAttribute("selectedEnYear", enYear);
+        model.addAttribute("availableEnYears", availableYears);
+        model.addAttribute("pageTitle", "EN → BAC Correlation");
+        return "correlation";
     }
 
     @GetMapping("/admin")
