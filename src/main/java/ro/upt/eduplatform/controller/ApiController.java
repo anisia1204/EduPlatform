@@ -6,6 +6,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 import ro.upt.eduplatform.service.BacExcelImportService;
+import ro.upt.eduplatform.service.CorrelationService;
 import ro.upt.eduplatform.service.EnExcelImportService;
 import ro.upt.eduplatform.service.StatisticsService;
 
@@ -19,6 +20,7 @@ import java.util.Map;
 public class ApiController {
 
     private final StatisticsService statisticsService;
+    private final CorrelationService correlationService;
 
     private final BacExcelImportService bacExcelImportService;
     private final EnExcelImportService enExcelImportService;
@@ -93,10 +95,6 @@ public class ApiController {
         return ResponseEntity.ok(statisticsService.getAvailableCounties());
     }
 
-    // ═══════════════════════════════════════════════
-    // STATISTICI EN
-    // ═══════════════════════════════════════════════
-
     @GetMapping("/statistici/en/{county}/{year}")
     public ResponseEntity<?> statisticiEnJudet(
             @PathVariable String county,
@@ -109,5 +107,34 @@ public class ApiController {
     @GetMapping("/statistici/en/tendinte")
     public ResponseEntity<List<StatisticsService.EnYearlyTrend>> tendinteLongitudinaleEn() {
         return ResponseEntity.ok(statisticsService.getEnLongitudinalTrends());
+    }
+
+    @GetMapping("/corelare/cohorte")
+    public ResponseEntity<List<CorrelationService.CohortStatistics>> allCohortaStatistici() {
+        return ResponseEntity.ok(correlationService.getAllCohortStatistics());
+    }
+
+    @GetMapping("/corelare/cohorta/{anEn}")
+    public ResponseEntity<?> cohortaStatistici(@PathVariable int anEn) {
+        var stats = correlationService.getAllCohortStatistics().stream().filter(c -> c.enYear() == anEn).findFirst().orElse(null);
+        if (stats == null) return ResponseEntity.notFound().build();
+        return ResponseEntity.ok(stats);
+    }
+
+    @GetMapping("/corelare/judete/{anEn}")
+    public ResponseEntity<List<CorrelationService.CountyCohortStatistics>> corelatiePerJudet(
+            @PathVariable int anEn) {
+        return ResponseEntity.ok(correlationService.getCountyStatisticsForCohort(anEn));
+    }
+
+    @GetMapping("/corelare/evolutie/{anEn}")
+    public ResponseEntity<List<CorrelationService.CountyEvolution>> evolutiePerJudet(
+            @PathVariable int anEn) {
+        return ResponseEntity.ok(correlationService.getEvolutionPerCounty(anEn));
+    }
+
+    @GetMapping("/corelare/ani-disponibili")
+    public ResponseEntity<List<Integer>> aniCuCohortaCompleta() {
+        return ResponseEntity.ok(correlationService.getCompleteEnYears());
     }
 }
