@@ -1,0 +1,178 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title th:text="${pageTitle}">EduPlatform</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600&family=DM+Serif+Display&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --navy: #0f2240;
+            --blue: #1a56db;
+            --teal: #0d9488;
+            --amber: #d97706;
+            --slate: #64748b;
+            --bg: #f1f5f9;
+            --card: #ffffff;
+            --border: #e2e8f0;
+        }
+        * { box-sizing: border-box; }
+        body { background: var(--bg); font-family: 'DM Sans', sans-serif; color: #1e293b; margin: 0; }
+        .navbar { background: var(--navy); padding: 0 0; }
+        .navbar .container { display: flex; align-items: stretch; }
+        .navbar-brand { font-family: 'DM Serif Display', serif; color: white !important; font-size: 1.25rem; padding: 1rem 1.5rem 1rem 0; letter-spacing: -0.01em; }
+        .nav-link { color: rgba(255,255,255,0.7) !important; padding: 1rem 1rem !important; font-size: 0.875rem; font-weight: 500; transition: color 0.15s; border-bottom: 2px solid transparent; }
+        .nav-link:hover, .nav-link.active { color: white !important; border-bottom-color: var(--teal); }
+        .hero { background: linear-gradient(135deg, var(--navy) 0%, #1e3a6e 60%, #1a4a8a 100%); color: white; padding: 5rem 0 4rem; position: relative; overflow: hidden; }
+        .hero::before { content: ''; position: absolute; inset: 0; background: url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%23ffffff' fill-opacity='0.03'%3E%3Cpath d='M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E"); }
+        .hero h1 { font-family: 'DM Serif Display', serif; font-size: 3rem; font-weight: 400; letter-spacing: -0.03em; margin-bottom: 1rem; }
+        .hero p { color: rgba(255,255,255,0.75); font-size: 1.1rem; }
+        .stat-card { background: var(--card); border-radius: 12px; padding: 1.75rem; border: 1px solid var(--border); transition: transform 0.2s, box-shadow 0.2s; }
+        .stat-card:hover { transform: translateY(-2px); box-shadow: 0 8px 24px rgba(0,0,0,0.08); }
+        .stat-card .value { font-size: 2.25rem; font-weight: 600; font-variant-numeric: tabular-nums; }
+        .stat-card .label { color: var(--slate); font-size: 0.875rem; margin-top: 0.25rem; }
+        .nav-card { background: var(--card); border-radius: 12px; padding: 1.75rem; border: 1px solid var(--border); text-decoration: none; color: inherit; display: block; transition: all 0.2s; }
+        .nav-card:hover { transform: translateY(-2px); box-shadow: 0 8px 24px rgba(0,0,0,0.08); border-color: var(--blue); color: inherit; }
+        .nav-card .icon { width: 48px; height: 48px; border-radius: 12px; display: flex; align-items: center; justify-content: center; font-size: 1.4rem; margin-bottom: 1rem; }
+        .nav-card h5 { font-weight: 600; font-size: 1rem; margin-bottom: 0.5rem; }
+        .nav-card p { color: var(--slate); font-size: 0.875rem; margin: 0; line-height: 1.6; }
+        .section-title { font-family: 'DM Serif Display', serif; font-size: 1.75rem; letter-spacing: -0.02em; margin-bottom: 0.5rem; }
+        .section-sub { color: var(--slate); font-size: 0.9rem; margin-bottom: 2rem; }
+        .badge-year { background: rgba(26,86,219,0.1); color: var(--blue); padding: 0.2rem 0.6rem; border-radius: 20px; font-size: 0.8rem; font-weight: 600; }
+    </style>
+</head>
+<body>
+<nav class="navbar navbar-expand-lg">
+    <div class="container">
+        <a class="navbar-brand" href="/"><i class="bi bi-mortarboard-fill me-2"></i>EduPlatform</a>
+        <div class="navbar-nav ms-auto d-flex flex-row">
+            <a class="nav-link" href="/statistics/bac">BAC Statistics</a>
+            <a class="nav-link" href="/statistics/en">EN Statistics</a>
+            <a class="nav-link" href="/comparison">County Comparison</a>
+            <a class="nav-link" href="/correlation">EN→BAC Correlation</a>
+            <a class="nav-link" href="/prediction">Prediction</a>
+            <a class="nav-link" href="/admin">Admin</a>
+        </div>
+    </div>
+</nav>
+
+<div class="hero">
+    <div class="container position-relative">
+        <h1>Romanian Educational<br>Performance Analytics</h1>
+        <p class="mb-4">Anonymized data · National Evaluation & Baccalaureate · Machine Learning Prediction</p>
+        <div class="d-flex gap-2 flex-wrap">
+            <span class="badge-year" th:each="y : ${availableYears}" th:text="'BAC ' + ${y}"></span>
+        </div>
+    </div>
+</div>
+
+<div class="container py-5">
+    <div class="row g-3 mb-5" id="summaryRow">
+        <div class="col-6 col-md-3">
+            <div class="stat-card">
+                <div class="value text-primary" id="totalBac">—</div>
+                <div class="label">BAC candidates</div>
+            </div>
+        </div>
+        <div class="col-6 col-md-3">
+            <div class="stat-card">
+                <div class="value text-success" id="totalEn">—</div>
+                <div class="label">EN candidates</div>
+            </div>
+        </div>
+        <div class="col-6 col-md-3">
+            <div class="stat-card">
+                <div class="value text-warning" id="nrYears">—</div>
+                <div class="label">Years of BAC data</div>
+            </div>
+        </div>
+        <div class="col-6 col-md-3">
+            <div class="stat-card">
+                <div class="value text-danger" id="nrCounties">—</div>
+                <div class="label">Counties covered</div>
+            </div>
+        </div>
+    </div>
+
+    <h2 class="section-title">Explore the Data</h2>
+    <p class="section-sub">Analyze educational performance across Romania from multiple perspectives.</p>
+
+    <div class="row g-3">
+        <div class="col-md-4">
+            <a href="/statistics/bac" class="nav-card">
+                <div class="icon" style="background:#dbeafe"><i class="bi bi-bar-chart-fill" style="color:#1a56db"></i></div>
+                <h5>BAC Statistics</h5>
+                <p>Passing rates, grade distributions and longitudinal trends per county and year.</p>
+            </a>
+        </div>
+        <div class="col-md-4">
+            <a href="/statistics/en" class="nav-card">
+                <div class="icon" style="background:#d1fae5"><i class="bi bi-journal-check" style="color:#059669"></i></div>
+                <h5>National Evaluation</h5>
+                <p>Romanian & Mathematics scores from the 8th grade National Evaluation exam (2015–2021).</p>
+            </a>
+        </div>
+        <div class="col-md-4">
+            <a href="/comparison" class="nav-card">
+                <div class="icon" style="background:#fef3c7"><i class="bi bi-trophy-fill" style="color:#d97706"></i></div>
+                <h5>County Ranking</h5>
+                <p>National ranking of all 42 counties by BAC average score and passing rate.</p>
+            </a>
+        </div>
+        <div class="col-md-4">
+            <a href="/correlation" class="nav-card">
+                <div class="icon" style="background:#ede9fe"><i class="bi bi-graph-up-arrow" style="color:#7c3aed"></i></div>
+                <h5>EN → BAC Correlation</h5>
+                <p>Longitudinal cohort analysis — how EN performance predicts BAC outcomes 4 years later.</p>
+            </a>
+        </div>
+        <div class="col-md-4">
+            <a href="/prediction" class="nav-card">
+                <div class="icon" style="background:#fee2e2"><i class="bi bi-cpu-fill" style="color:#dc2626"></i></div>
+                <h5>ML Prediction</h5>
+                <p>Predict BAC outcomes based on EN scores, county, specialization and environment.</p>
+            </a>
+        </div>
+        <div class="col-md-4">
+            <a href="/admin" class="nav-card">
+                <div class="icon" style="background:#f1f5f9"><i class="bi bi-gear-fill" style="color:#475569"></i></div>
+                <h5>Data Administration</h5>
+                <p>Import XLSX datasets, train the ML model and monitor the system.</p>
+            </a>
+        </div>
+    </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+<script>
+    async function loadSummary() {
+        try {
+            const [years, counties] = await Promise.all([
+                fetch('/api/meta/ani').then(r => r.json()),
+                fetch('/api/meta/judete').then(r => r.json())
+            ]);
+            document.getElementById('nrYears').textContent = years.length;
+            document.getElementById('nrCounties').textContent = counties.filter(j => j !== 'XX').length;
+            // Load totals per latest year
+            if (years.length > 0) {
+                const latestYear = Math.max(...years);
+                const allCounties = await Promise.all(
+                    counties.filter(j => j !== 'XX').slice(0, 5).map(c =>
+                        fetch(`/api/statistici/${c}/${latestYear}`).then(r => r.ok ? r.json() : null)
+                    )
+                );
+                const total = allCounties.filter(Boolean).reduce((s, c) => s + (c.totalCandidati || 0), 0);
+                if (total > 0) document.getElementById('totalBac').textContent = total.toLocaleString() + '+';
+            }
+        } catch (e) {}
+        try {
+            const enYears = await fetch('/api/meta/ani/en').then(r => r.json());
+            document.getElementById('totalEn').textContent = enYears.length + ' years';
+        } catch (e) {}
+    }
+    loadSummary();
+</script>
+</body>
+</html>
