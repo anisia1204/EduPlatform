@@ -68,6 +68,18 @@ public class WebController {
         return "correlation";
     }
 
+    @GetMapping("/comparison")
+    public String comparison(
+            @RequestParam(required = false, defaultValue = "2023") Integer year,
+            Model model) {
+        var comparison = statisticsService.compareCounties(year);
+        model.addAttribute("comparison", comparison);
+        model.addAttribute("selectedYear", year);
+        model.addAttribute("availableYears", statisticsService.getAvailableBacYears());
+        model.addAttribute("pageTitle", "County Comparison — " + year);
+        return "comparison";
+    }
+
     @GetMapping("/admin")
     public String admin(Model model) {
         model.addAttribute("pageTitle", "Administration — EduPlatform");
