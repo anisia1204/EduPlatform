@@ -15,6 +15,15 @@ public class WebController {
     private final StatisticsService statisticsService;
     private final CorrelationService correlationService;
 
+    @GetMapping("/")
+    public String dashboard(Model model) {
+        model.addAttribute("availableYears", statisticsService.getAvailableBacYears());
+        model.addAttribute("availableCounties", statisticsService.getAvailableCounties());
+        model.addAttribute("availableEnYears", statisticsService.getAvailableEnYears());
+        model.addAttribute("pageTitle", "EduPlatform — Dashboard");
+        return "dashboard";
+    }
+
     @GetMapping("/statistics/bac")
     public String bacStatistics(
             @RequestParam(required = false, defaultValue = "TM") String county,
