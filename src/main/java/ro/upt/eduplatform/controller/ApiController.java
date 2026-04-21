@@ -5,6 +5,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
+import ro.upt.eduplatform.ml.MlPredictionService;
 import ro.upt.eduplatform.service.BacExcelImportService;
 import ro.upt.eduplatform.service.CorrelationService;
 import ro.upt.eduplatform.service.EnExcelImportService;
@@ -20,6 +21,7 @@ import java.util.Map;
 public class ApiController {
 
     private final StatisticsService statisticsService;
+    private final MlPredictionService mlService;
     private final CorrelationService correlationService;
 
     private final BacExcelImportService bacExcelImportService;
@@ -78,6 +80,29 @@ public class ApiController {
             @PathVariable String county,
             @PathVariable int year) {
         return ResponseEntity.ok(statisticsService.getGradeDistribution(county, year));
+    }
+
+    @PostMapping("/ml/train")
+    public ResponseEntity<MlPredictionService.ModelMetrics> trainModel() {
+        log.info("Antrenament ML solicitat prin API");
+        return ResponseEntity.ok(mlService.trainModel());
+    }
+
+    @PostMapping("/ml/predict")
+    public ResponseEntity<MlPredictionService.PredictionResult> predict(
+            @RequestBody MlPredictionService.PredictionRequest request) {
+        log.info("Predictie solicitata: {}", request);
+        return ResponseEntity.ok(mlService.predict(request));
+    }
+
+    @GetMapping("/ml/status")
+    public ResponseEntity<Map<String, Object>> mlStatus() {
+        return ResponseEntity.ok(Map.of(
+                "modelAntrenat", mlService.isModelTrained(),
+                "metrici", mlService.getLastMetrics() != null
+                        ? mlService.getLastMetrics()
+                        : "Modelul nu a fost inca antrenat. Apeleaza POST /api/ml/train"
+        ));
     }
 
     @GetMapping("/meta/ani")

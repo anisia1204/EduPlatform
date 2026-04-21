@@ -8,6 +8,8 @@ import org.springframework.web.bind.annotation.RequestParam;
 import ro.upt.eduplatform.service.CorrelationService;
 import ro.upt.eduplatform.service.StatisticsService;
 
+import java.util.List;
+
 @Controller
 @RequiredArgsConstructor
 public class WebController {
@@ -87,6 +89,17 @@ public class WebController {
         model.addAttribute("availableYears", statisticsService.getAvailableBacYears());
         model.addAttribute("pageTitle", "County Comparison — " + year);
         return "comparison";
+    }
+
+    @GetMapping("/prediction")
+    public String prediction(Model model) {
+        model.addAttribute("counties", statisticsService.getAvailableCounties());
+        model.addAttribute("profiles", List.of(
+                "Mathematics-Informatics", "Natural Sciences",
+                "Philology", "Social Sciences", "Technical", "Arts", "Sports"
+        ));
+        model.addAttribute("pageTitle", "BAC Outcome Prediction");
+        return "prediction";
     }
 
     @GetMapping("/admin")
