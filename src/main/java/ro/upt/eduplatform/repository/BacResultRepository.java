@@ -40,4 +40,7 @@ public interface BacResultRepository extends JpaRepository<BacResult, Long> {
     @Query("SELECT (COUNT(CASE WHEN b.isPassed = true THEN 1 END) * 100.0 / COUNT(b)) " +
             "FROM BacResult b WHERE b.year = :year")
     Double passingRateByYear(@Param("year") Integer year);
+
+    @Query("SELECT b FROM BacResult b WHERE b.generalAverage IS NOT NULL AND b.isPassed IS NOT NULL")
+    List<BacResult> findAllWithCompleteData();
 }
