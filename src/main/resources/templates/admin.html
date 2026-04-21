@@ -194,7 +194,7 @@
                 <strong>Model antrenat!</strong><br>
                 Accuracy: ${(r.accuracy*100).toFixed(1)}% |
                 F1: ${(r.f1Score*100).toFixed(1)}% |
-                Exemple: ${r.nrExempleAntrenament}
+                Training examples: ${(r.trainingExamples || 0).toLocaleString()}
             </div>`;
         } catch(e) {
             document.getElementById('mlResult').innerHTML = `<div class="alert alert-danger">Eroare: ${e.message}</div>`;
