@@ -120,6 +120,11 @@ public class ApiController {
         return ResponseEntity.ok(statisticsService.getAvailableCounties());
     }
 
+    @GetMapping("/meta/summary")
+    public ResponseEntity<Map<String, Object>> summary() {
+        return ResponseEntity.ok(statisticsService.getSummary());
+    }
+
     @GetMapping("/statistici/en/{county}/{year}")
     public ResponseEntity<?> statisticiEnJudet(
             @PathVariable String county,
