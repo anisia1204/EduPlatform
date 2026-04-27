@@ -88,16 +88,12 @@ public class StatisticsService {
             int an       = ((Number) row[0]).intValue();
             double media = row[1] != null ? ((Number) row[1]).doubleValue() : 0.0;
             long total   = ((Number) row[2]).longValue();
-
-            List<BacResult> anResults = bacRepository.findByYear(an);
-            long passed = anResults.stream().filter(r -> Boolean.TRUE.equals(r.getIsPassed())).count();
-            double rata = total > 0 ? (double) passed / total * 100 : 0;
-
+            Double rata  = bacRepository.passingRateByYear(an);
             trends.add(new YearlyTrend(
                     an,
                     Math.round(media * 100.0) / 100.0,
                     total,
-                    Math.round(rata * 10.0) / 10.0
+                    rata != null ? Math.round(rata * 10.0) / 10.0 : 0.0
             ));
         }
         return trends;
@@ -169,28 +165,17 @@ public class StatisticsService {
         List<EnYearlyTrend> trends = new ArrayList<>();
 
         for (Integer an : years) {
-            List<EnResult> results = enRepository.findByYear(an);
-            if (results.isEmpty()) continue;
-
-            long total = results.size();
-            double mediaGen = results.stream()
-                    .filter(r -> r.getAverage() != null)
-                    .mapToDouble(EnResult::getAverage)
-                    .average().orElse(0.0);
-            double mediaRomana = results.stream()
-                    .filter(r -> r.getRomanianGrade() != null)
-                    .mapToDouble(EnResult::getRomanianGrade)
-                    .average().orElse(0.0);
-            double mediaMatem = results.stream()
-                    .filter(r -> r.getMathematicsGrade() != null)
-                    .mapToDouble(EnResult::getMathematicsGrade)
-                    .average().orElse(0.0);
+            Long total   = enRepository.countByYear(an);
+            Double avgGen   = enRepository.avgAverageByYear(an);
+            Double avgRom   = enRepository.avgRomanianByYear(an);
+            Double avgMath  = enRepository.avgMathByYear(an);
+            if (total == null || total == 0) continue;
 
             trends.add(new EnYearlyTrend(
                     an,
-                    Math.round(mediaGen * 100.0) / 100.0,
-                    Math.round(mediaRomana * 100.0) / 100.0,
-                    Math.round(mediaMatem * 100.0) / 100.0,
+                    avgGen  != null ? Math.round(avgGen  * 100.0) / 100.0 : 0.0,
+                    avgRom  != null ? Math.round(avgRom  * 100.0) / 100.0 : 0.0,
+                    avgMath != null ? Math.round(avgMath * 100.0) / 100.0 : 0.0,
                     total
             ));
         }
@@ -209,6 +194,23 @@ public class StatisticsService {
 
     public List<String> getAvailableCounties() {
         return bacRepository.findDistinctCounties();
+    }
+
+    public Map<String, Object> getSummary() {
+        Long totalBac = bacRepository.count();
+        Long totalEn  = enRepository.countAll();
+        List<Integer> bacYears = bacRepository.findDistinctYears();
+        List<Integer> enYears  = enRepository.findDistinctAni();
+        List<String> counties  = bacRepository.findDistinctCounties()
+                .stream().filter(c -> !"XX".equals(c)).collect(Collectors.toList());
+
+        return Map.of(
+                "totalBacCandidates", totalBac != null ? totalBac : 0L,
+                "totalEnCandidates",  totalEn  != null ? totalEn  : 0L,
+                "bacYears",  bacYears,
+                "enYears",   enYears,
+                "nrCounties", counties.size()
+        );
     }
 
     private String getInterval(double grade) {
