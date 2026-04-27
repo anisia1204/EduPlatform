@@ -149,28 +149,18 @@
 <script>
     async function loadSummary() {
         try {
-            const [years, counties] = await Promise.all([
-                fetch('/api/meta/ani').then(r => r.json()),
-                fetch('/api/meta/judete').then(r => r.json())
-            ]);
-            document.getElementById('nrYears').textContent = years.length;
-            document.getElementById('nrCounties').textContent = counties.filter(j => j !== 'XX').length;
-            // Load totals per latest year
-            if (years.length > 0) {
-                const latestYear = Math.max(...years);
-                const allCounties = await Promise.all(
-                    counties.filter(j => j !== 'XX').slice(0, 5).map(c =>
-                        fetch(`/api/statistici/${c}/${latestYear}`).then(r => r.ok ? r.json() : null)
-                    )
-                );
-                const total = allCounties.filter(Boolean).reduce((s, c) => s + (c.totalCandidati || 0), 0);
-                if (total > 0) document.getElementById('totalBac').textContent = total.toLocaleString() + '+';
-            }
-        } catch (e) {}
-        try {
-            const enYears = await fetch('/api/meta/ani/en').then(r => r.json());
-            document.getElementById('totalEn').textContent = enYears.length + ' years';
-        } catch (e) {}
+            const summary = await fetch('/api/meta/summary').then(r => r.json());
+            document.getElementById('totalBac').textContent =
+                (summary.totalBacCandidates || 0).toLocaleString();
+            document.getElementById('totalEn').textContent =
+                (summary.totalEnCandidates || 0).toLocaleString();
+            document.getElementById('nrYears').textContent =
+                (summary.bacYears || []).length;
+            document.getElementById('nrCounties').textContent =
+                summary.nrCounties || 0;
+        } catch (e) {
+            console.error('Summary load failed:', e);
+        }
     }
     loadSummary();
 </script>
