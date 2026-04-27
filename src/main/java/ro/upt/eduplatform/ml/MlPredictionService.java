@@ -16,6 +16,16 @@ public class MlPredictionService {
 
     private final BacResultRepository bacRepository;
 
+    private static final int N_FEATURES = 6;
+    private static final String[] FEATURE_NAMES = {
+            "Romanian Grade",
+            "Mandatory Subject Grade",
+            "Elective Subject Grade",
+            "Specialization Profile",
+            "County",
+            "Environment (urban/rural)"
+    };
+
     private RandomForestModel trainedModel = null;
     private boolean modelTrained = false;
     private ModelMetrics lastMetrics = null;
@@ -76,13 +86,11 @@ public class MlPredictionService {
 
         Collections.shuffle(usable, new Random(42));
 
-        double[][] X = new double[usable.size()][6];
+        double[][] X = new double[usable.size()][N_FEATURES];
         int[] y = new int[usable.size()];
-
         for (int i = 0; i < usable.size(); i++) {
-            BacResult r = usable.get(i);
-            X[i] = extractFeatures(r);
-            y[i] = Boolean.TRUE.equals(r.getIsPassed()) ? 1 : 0;
+            X[i] = extractFeatures(usable.get(i));
+            y[i] = Boolean.TRUE.equals(usable.get(i).getIsPassed()) ? 1 : 0;
         }
 
         int splitIdx = (int) (usable.size() * 0.8);
@@ -115,12 +123,16 @@ public class MlPredictionService {
 
         log.info("Model trained: accuracy={}, f1={}, n={}",
                 lastMetrics.accuracy(), lastMetrics.f1Score(), usable.size());
+
+        double[] imp = trainedModel.getFeatureImportance();
+        for (int i = 0; i < FEATURE_NAMES.length; i++) {
+            log.info("  Feature importance [{}]: {}", FEATURE_NAMES[i], round3(imp[i]));
+        }
+
         return lastMetrics;
     }
 
-    /**
-     * Predict BAC outcome for a given student profile.
-     */
+
     public PredictionResult predict(PredictionRequest req) {
         if (!modelTrained) {
             log.info("Model not trained yet, training now...");
@@ -128,21 +140,20 @@ public class MlPredictionService {
         }
 
         double[] features = extractFeaturesFromRequest(req);
-        double probability = modelTrained ? trainedModel.predictProbability(features) : 0.5;
+        double probability = trainedModel.predictProbability(features);
 
         double estimatedAverage = estimateAverage(req);
-        String category = gradeCategory(estimatedAverage);
 
         String riskLevel;
         if (probability >= 0.75)      riskLevel = "Low risk";
         else if (probability >= 0.5)  riskLevel = "Moderate risk";
         else                          riskLevel = "High risk";
 
-        Map<String, Double> importance = computeFeatureImportance(features);
+        Map<String, Double> importance = buildImportanceMap(trainedModel.getFeatureImportance());
 
         return new PredictionResult(
                 round3(probability),
-                category,
+                gradeCategory(estimatedAverage),
                 round2(estimatedAverage),
                 riskLevel,
                 importance
@@ -171,6 +182,30 @@ public class MlPredictionService {
         };
     }
 
+    private double estimateAverage(PredictionRequest req) {
+        List<Double> grades = new ArrayList<>();
+        if (req.romanianGrade() != null)         grades.add(req.romanianGrade());
+        if (req.mandatorySubjectGrade() != null)  grades.add(req.mandatorySubjectGrade());
+        if (req.electiveSubjectGrade() != null)   grades.add(req.electiveSubjectGrade());
+        if (req.enRomanianGrade() != null)        grades.add(req.enRomanianGrade());
+        if (req.enMathGrade() != null)            grades.add(req.enMathGrade());
+        if (req.enAverage() != null)              grades.add(req.enAverage());
+        if (grades.isEmpty()) return 5.0;
+        return Math.min(10.0, Math.max(1.0,
+                grades.stream().mapToDouble(Double::doubleValue).average().orElse(5.0)));
+    }
+
+    private Map<String, Double> buildImportanceMap(double[] importance) {
+        Map<String, Double> map = new LinkedHashMap<>();
+        Integer[] idx = new Integer[FEATURE_NAMES.length];
+        for (int i = 0; i < idx.length; i++) idx[i] = i;
+        Arrays.sort(idx, (a, b) -> Double.compare(importance[b], importance[a]));
+        for (int i : idx) {
+            map.put(FEATURE_NAMES[i], round3(importance[i]));
+        }
+        return map;
+    }
+
     private double encodeProfile(String profile) {
         if (profile == null) return 2.0;
         String p = profile.toLowerCase();
@@ -192,36 +227,6 @@ public class MlPredictionService {
         return env.toUpperCase().contains("URBAN") ? 1.0 : 0.0;
     }
 
-    private double estimateAverage(PredictionRequest req) {
-        List<Double> grades = new ArrayList<>();
-
-        if (req.romanianGrade() != null)         grades.add(req.romanianGrade());
-        if (req.mandatorySubjectGrade() != null)  grades.add(req.mandatorySubjectGrade());
-        if (req.electiveSubjectGrade() != null)   grades.add(req.electiveSubjectGrade());
-
-        if (req.enRomanianGrade() != null) grades.add(req.enRomanianGrade());
-        if (req.enMathGrade() != null)     grades.add(req.enMathGrade());
-        if (req.enAverage() != null)       grades.add(req.enAverage());
-
-        if (grades.isEmpty()) return 5.0;
-
-        double avg = grades.stream().mapToDouble(Double::doubleValue).average().orElse(5.0);
-        return Math.min(10.0, Math.max(1.0, avg));
-    }
-
-    private Map<String, Double> computeFeatureImportance(double[] features) {
-        Map<String, Double> importance = new LinkedHashMap<>();
-        importance.put("Romanian Grade",           0.30);
-        importance.put("Mandatory Subject Grade",  0.28);
-        importance.put("Elective Subject Grade",   0.22);
-        importance.put("Specialization Profile",   0.10);
-        importance.put("County",                   0.06);
-        importance.put("Environment (urban/rural)", 0.04);
-        return importance;
-    }
-
-
-
     private String gradeCategory(double avg) {
         if (avg < 5) return "below 5";
         if (avg < 6) return "5-6";
@@ -234,73 +239,91 @@ public class MlPredictionService {
     public ModelMetrics getLastMetrics() { return lastMetrics; }
     public boolean isModelTrained()      { return modelTrained; }
 
-    private static double orDefault(Double val, double def) {
-        return val != null ? val : def;
-    }
-
+    private static double orDefault(Double v, double d) { return v != null ? v : d; }
     private static double round2(double v) { return Math.round(v * 100.0) / 100.0; }
     private static double round3(double v) { return Math.round(v * 1000.0) / 1000.0; }
 
     private static class RandomForestModel {
         private final List<DecisionTree> trees;
-        private final Random rng;
+        private final double[] featureImportance;
+        private final int nTotal;
 
         RandomForestModel(int nTrees, double[][] X, int[] y) {
-            this.rng = new Random(42);
+            Random rng = new Random(42);
             this.trees = new ArrayList<>();
-            int n = X.length;
+            this.nTotal = X.length;
             int nFeatures = X[0].length;
-            int featuresPerTree = (int) Math.sqrt(nFeatures);
+            int featuresPerSplit = (int) Math.sqrt(nFeatures);
+
+            double[] rawImportance = new double[nFeatures];
 
             for (int t = 0; t < nTrees; t++) {
-                double[][] xBoot = new double[n][nFeatures];
-                int[] yBoot = new int[n];
-                for (int i = 0; i < n; i++) {
-                    int idx = rng.nextInt(n);
+                double[][] xBoot = new double[nTotal][nFeatures];
+                int[] yBoot = new int[nTotal];
+                for (int i = 0; i < nTotal; i++) {
+                    int idx = rng.nextInt(nTotal);
                     xBoot[i] = X[idx].clone();
                     yBoot[i] = y[idx];
                 }
-                int[] featSubset = randomFeatureSubset(nFeatures, featuresPerTree);
-                trees.add(new DecisionTree(xBoot, yBoot, featSubset, 8));
+                int[] featSubset = randomSubset(nFeatures, featuresPerSplit, rng);
+                DecisionTree tree = new DecisionTree(xBoot, yBoot, featSubset, 8, nTotal);
+                trees.add(tree);
+
+                double[] treeImportance = tree.getFeatureImportance();
+                for (int f = 0; f < nFeatures; f++) {
+                    rawImportance[f] += treeImportance[f];
+                }
             }
-            log.info("Random Forest trained: {} trees, {} features per tree", nTrees, featuresPerTree);
+
+            for (int f = 0; f < nFeatures; f++) rawImportance[f] /= nTrees;
+
+            double sum = Arrays.stream(rawImportance).sum();
+            this.featureImportance = new double[nFeatures];
+            if (sum > 0) {
+                for (int f = 0; f < nFeatures; f++) featureImportance[f] = rawImportance[f] / sum;
+            }
         }
 
-        int predict(double[] x) {
-            return predictProbability(x) >= 0.5 ? 1 : 0;
-        }
+        int predict(double[] x) { return predictProbability(x) >= 0.5 ? 1 : 0; }
 
         double predictProbability(double[] x) {
             double sum = 0;
-            for (DecisionTree tree : trees) sum += tree.predict(x);
+            for (DecisionTree t : trees) sum += t.predict(x);
             return sum / trees.size();
         }
 
-        private int[] randomFeatureSubset(int total, int k) {
+        double[] getFeatureImportance() { return featureImportance.clone(); }
+
+        private int[] randomSubset(int total, int k, Random rng) {
             List<Integer> all = new ArrayList<>();
             for (int i = 0; i < total; i++) all.add(i);
             Collections.shuffle(all, rng);
-            int[] subset = new int[k];
-            for (int i = 0; i < k; i++) subset[i] = all.get(i);
-            return subset;
+            int[] sub = new int[k];
+            for (int i = 0; i < k; i++) sub[i] = all.get(i);
+            return sub;
         }
     }
 
     private static class DecisionTree {
-        private TreeNode root;
+        private final TreeNode root;
+        private final double[] featureImportance;
+        private final int nTotalSamples;
 
-        DecisionTree(double[][] X, int[] y, int[] featureSubset, int maxDepth) {
+        DecisionTree(double[][] X, int[] y, int[] featureSubset, int maxDepth, int nTotal) {
+            this.nTotalSamples = nTotal;
+            this.featureImportance = new double[X[0].length];
             this.root = buildTree(X, y, featureSubset, 0, maxDepth);
         }
 
-        double predict(double[] x) {
-            return traverse(root, x);
-        }
+        double predict(double[] x) { return traverse(root, x); }
+
+        double[] getFeatureImportance() { return featureImportance.clone(); }
 
         private double traverse(TreeNode node, double[] x) {
             if (node.isLeaf) return node.value;
-            if (x[node.featureIdx] <= node.threshold) return traverse(node.left, x);
-            return traverse(node.right, x);
+            return x[node.featureIdx] <= node.threshold
+                    ? traverse(node.left, x)
+                    : traverse(node.right, x);
         }
 
         private TreeNode buildTree(double[][] X, int[] y, int[] features, int depth, int maxDepth) {
@@ -309,66 +332,71 @@ public class MlPredictionService {
             double leafVal = (double) pos / y.length;
 
             if (depth >= maxDepth || y.length <= 5 || pos == 0 || pos == y.length) {
-                TreeNode leaf = new TreeNode();
-                leaf.isLeaf = true;
-                leaf.value = leafVal;
-                return leaf;
+                return leafNode(leafVal);
             }
 
-            int bestFeat = features[0];
+            int bestFeat = -1;
             double bestThresh = 0, bestGini = Double.MAX_VALUE;
+            double parentGini = gini(y);
 
             for (int f : features) {
                 double[] vals = new double[X.length];
                 for (int i = 0; i < X.length; i++) vals[i] = X[i][f];
                 Arrays.sort(vals);
-
                 for (int i = 0; i < vals.length - 1; i++) {
                     if (vals[i] == vals[i + 1]) continue;
                     double thresh = (vals[i] + vals[i + 1]) / 2.0;
-                    double gini = giniSplit(X, y, f, thresh);
-                    if (gini < bestGini) {
-                        bestGini = gini; bestFeat = f; bestThresh = thresh;
-                    }
+                    double g = weightedGini(X, y, f, thresh);
+                    if (g < bestGini) { bestGini = g; bestFeat = f; bestThresh = thresh; }
                 }
+            }
+
+            if (bestFeat == -1) return leafNode(leafVal);
+
+            double decrease = parentGini - bestGini;
+            if (decrease > 0) {
+                featureImportance[bestFeat] += ((double) X.length / nTotalSamples) * decrease;
             }
 
             List<Integer> leftIdx = new ArrayList<>(), rightIdx = new ArrayList<>();
             for (int i = 0; i < X.length; i++) {
                 if (X[i][bestFeat] <= bestThresh) leftIdx.add(i); else rightIdx.add(i);
             }
-
-            if (leftIdx.isEmpty() || rightIdx.isEmpty()) {
-                TreeNode leaf = new TreeNode();
-                leaf.isLeaf = true; leaf.value = leafVal;
-                return leaf;
-            }
-
-            double[][] xLeft  = subset(X, leftIdx),  xRight  = subset(X, rightIdx);
-            int[] yLeft = subsetY(y, leftIdx), yRight = subsetY(y, rightIdx);
+            if (leftIdx.isEmpty() || rightIdx.isEmpty()) return leafNode(leafVal);
 
             TreeNode node = new TreeNode();
             node.featureIdx = bestFeat;
             node.threshold  = bestThresh;
-            node.left  = buildTree(xLeft,  yLeft,  features, depth + 1, maxDepth);
-            node.right = buildTree(xRight, yRight, features, depth + 1, maxDepth);
+            node.left  = buildTree(subsetX(X, leftIdx),  subsetY(y, leftIdx),  features, depth + 1, maxDepth);
+            node.right = buildTree(subsetX(X, rightIdx), subsetY(y, rightIdx), features, depth + 1, maxDepth);
             return node;
         }
 
-        private double giniSplit(double[][] X, int[] y, int feat, double thresh) {
+        private double gini(int[] y) {
+            if (y.length == 0) return 0;
+            int pos = 0;
+            for (int yi : y) if (yi == 1) pos++;
+            double p = (double) pos / y.length;
+            return 1.0 - p * p - (1 - p) * (1 - p);
+        }
+
+        private double weightedGini(double[][] X, int[] y, int feat, double thresh) {
             int lp = 0, lt = 0, rp = 0, rt = 0;
             for (int i = 0; i < X.length; i++) {
                 if (X[i][feat] <= thresh) { lt++; if (y[i] == 1) lp++; }
                 else { rt++; if (y[i] == 1) rp++; }
             }
-            double gL = lt > 0 ? 1 - sq((double) lp / lt) - sq(1.0 - (double) lp / lt) : 0;
-            double gR = rt > 0 ? 1 - sq((double) rp / rt) - sq(1.0 - (double) rp / rt) : 0;
-            return (lt * gL + rt * gR) / X.length;
+            double gL = lt > 0 ? 1 - sq((double) lp / lt) - sq(1 - (double) lp / lt) : 0;
+            double gR = rt > 0 ? 1 - sq((double) rp / rt) - sq(1 - (double) rp / rt) : 0;
+            return ((double) lt * gL + (double) rt * gR) / X.length;
         }
 
+        private TreeNode leafNode(double val) {
+            TreeNode n = new TreeNode(); n.isLeaf = true; n.value = val; return n;
+        }
         private double sq(double v) { return v * v; }
 
-        private double[][] subset(double[][] X, List<Integer> idx) {
+        private double[][] subsetX(double[][] X, List<Integer> idx) {
             double[][] out = new double[idx.size()][];
             for (int i = 0; i < idx.size(); i++) out[i] = X[idx.get(i)].clone();
             return out;
