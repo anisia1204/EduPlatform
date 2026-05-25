@@ -53,6 +53,35 @@ public class StatisticsService {
             Long totalCandidates
     ) {}
 
+    public record EnvironmentStatistics(
+            String environment,
+            Integer year,
+            Long totalCandidates,
+            Double generalAverage,
+            Double passingRate,
+            Long passed
+    ) {}
+
+    public record CountyEnvironmentStatistics(
+            String county,
+            Integer year,
+            Long urbanCandidates,
+            Double urbanAverage,
+            Double urbanPassingRate,
+            Long ruralCandidates,
+            Double ruralAverage,
+            Double ruralPassingRate,
+            Double averageGap
+    ) {}
+
+    public record EnvironmentTrend(
+            Integer year,
+            String environment,
+            Double generalAverage,
+            Long totalCandidates,
+            Double passingRate
+    ) {}
+
     public CountyStatistics calculateCountyStatistics(String county, int year) {
         List<BacResult> results = bacRepository.findByCountyAndYear(county.toUpperCase(), year);
         if (results.isEmpty()) return null;
@@ -211,6 +240,97 @@ public class StatisticsService {
                 "enYears",   enYears,
                 "nrCounties", counties.size()
         );
+    }
+
+    public List<EnvironmentStatistics> getBacEnvironmentStatistics(int year) {
+        List<Object[]> rows = bacRepository.statisticsByEnvironmentAndYear(year);
+        List<EnvironmentStatistics> result = new ArrayList<>();
+        for (Object[] row : rows) {
+            String env  = (String) row[0];
+            double avg  = row[1] != null ? ((Number) row[1]).doubleValue() : 0.0;
+            long count  = row[2] != null ? ((Number) row[2]).longValue() : 0L;
+            long passed = row[3] != null ? ((Number) row[3]).longValue() : 0L;
+            double rate = count > 0 ? (double) passed / count * 100 : 0;
+            result.add(new EnvironmentStatistics(
+                    env, year, count,
+                    Math.round(avg * 100.0) / 100.0,
+                    Math.round(rate * 10.0) / 10.0,
+                    passed
+            ));
+        }
+        return result;
+    }
+
+    public List<CountyEnvironmentStatistics> getBacCountyEnvironmentStatistics(int year) {
+        List<Object[]> rows = bacRepository.statisticsByCountyEnvironmentYear(year);
+
+        Map<String, Map<String, double[]>> byCounty = new LinkedHashMap<>();
+        for (Object[] row : rows) {
+            String county = (String) row[0];
+            String env    = (String) row[1];
+            double avg    = row[2] != null ? ((Number) row[2]).doubleValue() : 0.0;
+            long count    = row[3] != null ? ((Number) row[3]).longValue() : 0L;
+            long passed   = row[4] != null ? ((Number) row[4]).longValue() : 0L;
+            byCounty.computeIfAbsent(county, k -> new HashMap<>())
+                    .put(env, new double[]{avg, count, passed});
+        }
+
+        List<CountyEnvironmentStatistics> result = new ArrayList<>();
+        for (Map.Entry<String, Map<String, double[]>> entry : byCounty.entrySet()) {
+            String county = entry.getKey();
+            double[] urban = entry.getValue().getOrDefault("URBAN", new double[]{0, 0, 0});
+            double[] rural = entry.getValue().getOrDefault("RURAL", new double[]{0, 0, 0});
+            double urbanRate = urban[1] > 0 ? urban[2] / urban[1] * 100 : 0;
+            double ruralRate = rural[1] > 0 ? rural[2] / rural[1] * 100 : 0;
+            double gap = urban[0] - rural[0];
+
+            result.add(new CountyEnvironmentStatistics(
+                    county, year,
+                    (long) urban[1], Math.round(urban[0] * 100.0) / 100.0, Math.round(urbanRate * 10.0) / 10.0,
+                    (long) rural[1], Math.round(rural[0] * 100.0) / 100.0, Math.round(ruralRate * 10.0) / 10.0,
+                    Math.round(gap * 100.0) / 100.0
+            ));
+        }
+
+        result.sort(Comparator.comparingDouble(CountyEnvironmentStatistics::averageGap).reversed());
+        return result;
+    }
+
+    public List<EnvironmentTrend> getBacEnvironmentTrends() {
+        List<Object[]> rows = bacRepository.environmentTrendsAllYears();
+        List<EnvironmentTrend> result = new ArrayList<>();
+        for (Object[] row : rows) {
+            int year    = ((Number) row[0]).intValue();
+            String env  = (String) row[1];
+            double avg  = row[2] != null ? ((Number) row[2]).doubleValue() : 0.0;
+            long count  = row[3] != null ? ((Number) row[3]).longValue() : 0L;
+            double rate = row[4] != null ? ((Number) row[4]).doubleValue() : 0.0;
+            result.add(new EnvironmentTrend(
+                    year, env,
+                    Math.round(avg * 100.0) / 100.0,
+                    count,
+                    Math.round(rate * 10.0) / 10.0
+            ));
+        }
+        return result;
+    }
+
+    public List<EnvironmentTrend> getEnEnvironmentTrends() {
+        List<Object[]> rows = enRepository.environmentTrendsAllYears();
+        List<EnvironmentTrend> result = new ArrayList<>();
+        for (Object[] row : rows) {
+            int year   = ((Number) row[0]).intValue();
+            String env = (String) row[1];
+            double avg = row[2] != null ? ((Number) row[2]).doubleValue() : 0.0;
+            long count = row[3] != null ? ((Number) row[3]).longValue() : 0L;
+            result.add(new EnvironmentTrend(
+                    year, env,
+                    Math.round(avg * 100.0) / 100.0,
+                    count,
+                    0.0
+            ));
+        }
+        return result;
     }
 
     private String getInterval(double grade) {
