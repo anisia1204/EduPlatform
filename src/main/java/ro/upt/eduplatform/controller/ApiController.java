@@ -125,6 +125,28 @@ public class ApiController {
         return ResponseEntity.ok(statisticsService.getSummary());
     }
 
+@GetMapping("/environment/bac/{year}")
+    public ResponseEntity<List<StatisticsService.EnvironmentStatistics>> bacEnvironmentStats(
+            @PathVariable int year) {
+        return ResponseEntity.ok(statisticsService.getBacEnvironmentStatistics(year));
+    }
+
+    @GetMapping("/environment/bac/counties/{year}")
+    public ResponseEntity<List<StatisticsService.CountyEnvironmentStatistics>> bacCountyEnvironmentStats(
+            @PathVariable int year) {
+        return ResponseEntity.ok(statisticsService.getBacCountyEnvironmentStatistics(year));
+    }
+
+    @GetMapping("/environment/bac/trends")
+    public ResponseEntity<List<StatisticsService.EnvironmentTrend>> bacEnvironmentTrends() {
+        return ResponseEntity.ok(statisticsService.getBacEnvironmentTrends());
+    }
+
+    @GetMapping("/environment/en/trends")
+    public ResponseEntity<List<StatisticsService.EnvironmentTrend>> enEnvironmentTrends() {
+        return ResponseEntity.ok(statisticsService.getEnEnvironmentTrends());
+    }
+
     @GetMapping("/statistici/en/{county}/{year}")
     public ResponseEntity<?> statisticiEnJudet(
             @PathVariable String county,

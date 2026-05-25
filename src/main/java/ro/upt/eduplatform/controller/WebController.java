@@ -102,6 +102,24 @@ public class WebController {
         return "prediction";
     }
 
+    @GetMapping("/environment")
+    public String environment(
+            @RequestParam(required = false, defaultValue = "2023") Integer year,
+            Model model) {
+        var nationalStats = statisticsService.getBacEnvironmentStatistics(year);
+        var countyStats   = statisticsService.getBacCountyEnvironmentStatistics(year);
+        var bacTrends     = statisticsService.getBacEnvironmentTrends();
+        var enTrends      = statisticsService.getEnEnvironmentTrends();
+        model.addAttribute("nationalStats", nationalStats);
+        model.addAttribute("countyStats", countyStats);
+        model.addAttribute("bacTrends", bacTrends);
+        model.addAttribute("enTrends", enTrends);
+        model.addAttribute("selectedYear", year);
+        model.addAttribute("availableYears", statisticsService.getAvailableBacYears());
+        model.addAttribute("pageTitle", "Urban vs Rural — " + year);
+        return "environment";
+    }
+
     @GetMapping("/admin")
     public String admin(Model model) {
         model.addAttribute("pageTitle", "Administration — EduPlatform");
