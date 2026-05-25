@@ -7,8 +7,6 @@ import org.springframework.stereotype.Repository;
 import ro.upt.eduplatform.model.EnResult;
 
 import java.util.List;
-import java.util.Optional;
-
 @Repository
 public interface EnResultRepository extends JpaRepository<EnResult, Long> {
 
@@ -41,4 +39,17 @@ public interface EnResultRepository extends JpaRepository<EnResult, Long> {
 
     @Query("SELECT COUNT(e) FROM EnResult e")
     Long countAll();
+
+    @Query("SELECT UPPER(e.environment), AVG(e.average), COUNT(e), " +
+            "AVG(e.romanianGrade), AVG(e.mathematicsGrade) " +
+            "FROM EnResult e WHERE e.year = :year AND e.environment IS NOT NULL " +
+            "AND UPPER(e.environment) IN ('URBAN', 'RURAL') " +
+            "GROUP BY UPPER(e.environment)")
+    List<Object[]> statisticsByEnvironmentAndYear(@Param("year") Integer year);
+
+    @Query("SELECT e.year, UPPER(e.environment), AVG(e.average), COUNT(e) " +
+            "FROM EnResult e WHERE e.environment IS NOT NULL " +
+            "AND UPPER(e.environment) IN ('URBAN', 'RURAL') " +
+            "GROUP BY e.year, UPPER(e.environment) ORDER BY e.year, UPPER(e.environment)")
+    List<Object[]> environmentTrendsAllYears();
 }

@@ -43,4 +43,27 @@ public interface BacResultRepository extends JpaRepository<BacResult, Long> {
 
     @Query("SELECT b FROM BacResult b WHERE b.generalAverage IS NOT NULL AND b.isPassed IS NOT NULL")
     List<BacResult> findAllWithCompleteData();
+
+
+    @Query("SELECT UPPER(b.environment), AVG(b.generalAverage), COUNT(b), " +
+            "SUM(CASE WHEN b.isPassed = true THEN 1 ELSE 0 END) " +
+            "FROM BacResult b WHERE b.year = :year AND b.environment IS NOT NULL " +
+            "AND UPPER(b.environment) IN ('URBAN', 'RURAL') " +
+            "GROUP BY UPPER(b.environment)")
+    List<Object[]> statisticsByEnvironmentAndYear(@Param("year") Integer year);
+
+    @Query("SELECT b.county, UPPER(b.environment), AVG(b.generalAverage), COUNT(b), " +
+            "SUM(CASE WHEN b.isPassed = true THEN 1 ELSE 0 END) " +
+            "FROM BacResult b WHERE b.year = :year AND b.environment IS NOT NULL " +
+            "AND UPPER(b.environment) IN ('URBAN', 'RURAL') AND b.county <> 'XX' " +
+            "GROUP BY b.county, UPPER(b.environment) ORDER BY b.county")
+    List<Object[]> statisticsByCountyEnvironmentYear(@Param("year") Integer year);
+
+
+    @Query("SELECT b.year, UPPER(b.environment), AVG(b.generalAverage), COUNT(b), " +
+            "(COUNT(CASE WHEN b.isPassed = true THEN 1 END) * 100.0 / COUNT(b)) " +
+            "FROM BacResult b WHERE b.environment IS NOT NULL " +
+            "AND UPPER(b.environment) IN ('URBAN', 'RURAL') " +
+            "GROUP BY b.year, UPPER(b.environment) ORDER BY b.year, UPPER(b.environment)")
+    List<Object[]> environmentTrendsAllYears();
 }
