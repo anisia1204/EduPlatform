@@ -141,6 +141,12 @@
 <script th:inline="javascript">
     const distribution = /*[[${distribution}]]*/ {};
     const trends = /*[[${trends}]]*/ [];
+    const countyTrends = /*[[${countyTrends}]]*/ [];
+    const selectedCounty = /*[[${selectedCounty}]]*/ '';
+
+    document.querySelectorAll('#countyLabel, #countyLabel2').forEach(el => {
+        if (el) el.textContent = selectedCounty;
+    });
 
     if (distribution && Object.keys(distribution).length > 0) {
         new Chart(document.getElementById('chartDistribution'), {
