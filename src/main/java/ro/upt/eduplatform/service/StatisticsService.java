@@ -128,6 +128,24 @@ public class StatisticsService {
         return trends;
     }
 
+    public List<YearlyTrend> getCountyTrends(String county) {
+        List<Object[]> raw = bacRepository.statisticsPerYearForCounty(county.toUpperCase());
+        List<YearlyTrend> trends = new ArrayList<>();
+        for (Object[] row : raw) {
+            int year      = ((Number) row[0]).intValue();
+            double avg    = row[1] != null ? ((Number) row[1]).doubleValue() : 0.0;
+            long count    = row[2] != null ? ((Number) row[2]).longValue() : 0L;
+            double rate   = row[3] != null ? ((Number) row[3]).doubleValue() : 0.0;
+            trends.add(new YearlyTrend(
+                    year,
+                    Math.round(avg * 100.0) / 100.0,
+                    count,
+                    Math.round(rate * 10.0) / 10.0
+            ));
+        }
+        return trends;
+    }
+
     public List<CountyStatistics> compareCounties(int year) {
         List<String> counties = bacRepository.findDistinctCounties();
         return counties.stream()
@@ -240,6 +258,25 @@ public class StatisticsService {
                 "enYears",   enYears,
                 "nrCounties", counties.size()
         );
+    }
+
+    public List<YearlyTrend> getCountyLongitudinalTrend(String county) {
+        List<Object[]> rows = bacRepository.statisticsPerCountyAcrossYears(county.toUpperCase());
+        List<YearlyTrend> trends = new ArrayList<>();
+        for (Object[] row : rows) {
+            int year    = ((Number) row[0]).intValue();
+            double avg  = row[1] != null ? ((Number) row[1]).doubleValue() : 0.0;
+            long total  = row[2] != null ? ((Number) row[2]).longValue() : 0L;
+            long passed = row[3] != null ? ((Number) row[3]).longValue() : 0L;
+            double rate = total > 0 ? (double) passed / total * 100 : 0;
+            trends.add(new YearlyTrend(
+                    year,
+                    Math.round(avg * 100.0) / 100.0,
+                    total,
+                    Math.round(rate * 10.0) / 10.0
+            ));
+        }
+        return trends;
     }
 
     public List<EnvironmentStatistics> getBacEnvironmentStatistics(int year) {
