@@ -44,6 +44,11 @@ public interface BacResultRepository extends JpaRepository<BacResult, Long> {
     @Query("SELECT b FROM BacResult b WHERE b.generalAverage IS NOT NULL AND b.isPassed IS NOT NULL")
     List<BacResult> findAllWithCompleteData();
 
+    @Query("SELECT b.year, AVG(b.generalAverage), COUNT(b), " +
+            "(COUNT(CASE WHEN b.isPassed = true THEN 1 END) * 100.0 / COUNT(b)) " +
+            "FROM BacResult b WHERE b.county = :county " +
+            "GROUP BY b.year ORDER BY b.year")
+    List<Object[]> statisticsPerYearForCounty(@Param("county") String county);
 
     @Query("SELECT UPPER(b.environment), AVG(b.generalAverage), COUNT(b), " +
             "SUM(CASE WHEN b.isPassed = true THEN 1 ELSE 0 END) " +
@@ -66,4 +71,10 @@ public interface BacResultRepository extends JpaRepository<BacResult, Long> {
             "AND UPPER(b.environment) IN ('URBAN', 'RURAL') " +
             "GROUP BY b.year, UPPER(b.environment) ORDER BY b.year, UPPER(b.environment)")
     List<Object[]> environmentTrendsAllYears();
+
+    @Query("SELECT b.year, AVG(b.generalAverage), COUNT(b), " +
+            "SUM(CASE WHEN b.isPassed = true THEN 1 ELSE 0 END) " +
+            "FROM BacResult b WHERE b.county = :county AND b.generalAverage IS NOT NULL " +
+            "GROUP BY b.year ORDER BY b.year")
+    List<Object[]> statisticsPerCountyAcrossYears(@Param("county") String county);
 }
