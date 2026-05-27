@@ -34,11 +34,15 @@ public class WebController {
         var stats = statisticsService.calculateCountyStatistics(county, year);
         var distribution = statisticsService.getGradeDistribution(county, year);
         var trends = statisticsService.getLongitudinalTrends();
-        var countyTrend = statisticsService.getCountyLongitudinalTrend(county);
+        var countyTrends = statisticsService.getCountyTrends(county);
+        var nationalForYear = trends.stream()
+                .filter(t -> t.year().equals(year))
+                .findFirst().orElse(null);
         model.addAttribute("stats", stats);
         model.addAttribute("distribution", distribution);
         model.addAttribute("trends", trends);
-        model.addAttribute("countyTrend", countyTrend);
+        model.addAttribute("countyTrends", countyTrends);
+        model.addAttribute("nationalForYear", nationalForYear);
         model.addAttribute("selectedCounty", county.toUpperCase());
         model.addAttribute("selectedYear", year);
         model.addAttribute("availableYears", statisticsService.getAvailableBacYears());

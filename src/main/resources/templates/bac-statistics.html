@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<html lang="ro" xmlns:th="http://www.thymeleaf.org">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -26,6 +26,32 @@
         .form-select, .form-control { font-size: 0.9rem; border-color: var(--border); }
         .btn-primary { background: var(--blue); border-color: var(--blue); }
         .progress-thin { height: 6px; border-radius: 3px; }
+
+        .comparison-card {
+            background: linear-gradient(135deg, #f0f9ff, #f8fafc);
+            border: 1px solid #93c5fd;
+            border-radius: 12px;
+            padding: 1.25rem 1.5rem;
+            margin-bottom: 1.5rem;
+        }
+        .comparison-title {
+            text-transform: uppercase;
+            font-size: 0.75rem;
+            letter-spacing: 0.08em;
+            color: var(--slate);
+            font-weight: 700;
+        }
+        .comparison-county-value { font-size: 1.6rem; font-weight: 700; letter-spacing: -0.02em; }
+        .comparison-delta {
+            display: inline-block;
+            padding: 0.15rem 0.55rem;
+            border-radius: 20px;
+            font-size: 0.85rem;
+            font-weight: 600;
+        }
+        .delta-positive { background: #d1fae5; color: #065f46; }
+        .delta-negative { background: #fee2e2; color: #991b1b; }
+        .delta-neutral  { background: #f1f5f9; color: #475569; }
     </style>
 </head>
 <body>
@@ -59,7 +85,7 @@
     <div class="filter-bar">
         <div class="row g-2 align-items-end">
             <div class="col-md-3">
-                <label class="form-label small fw-semibold text-muted">JUDET</label>
+                <label class="form-label small fw-semibold text-muted">JUDEȚ</label>
                 <select id="countySelect" class="form-select">
                     <option th:each="c : ${availableCounties}" th:value="${c}" th:text="${c}"
                             th:selected="${c == selectedCounty}"></option>
@@ -74,17 +100,17 @@
             </div>
             <div class="col-md-2">
                 <button onclick="applyFilter()" class="btn btn-primary w-100">
-                    <i class="bi bi-search me-1"></i>Aplica
+                    <i class="bi bi-search me-1"></i>Aplică
                 </button>
             </div>
         </div>
     </div>
 
-    <div th:if="${stats != null}" class="row g-3 mb-4">
+    <div th:if="${stats != null}" class="row g-3 mb-3">
         <div class="col-6 col-md-3">
             <div class="metric-card">
                 <div class="metric-value text-primary" th:text="${stats.totalCandidates}">—</div>
-                <div class="metric-label">Numarul Candidaților</div>
+                <div class="metric-label">Total candidați</div>
             </div>
         </div>
         <div class="col-6 col-md-3">
@@ -99,13 +125,53 @@
         <div class="col-6 col-md-3">
             <div class="metric-card">
                 <div class="metric-value text-warning" th:text="${#numbers.formatDecimal(stats.generalAverage, 1, 2)}">—</div>
-                <div class="metric-label">Media Generală</div>
+                <div class="metric-label">Media generală</div>
             </div>
         </div>
         <div class="col-6 col-md-3">
             <div class="metric-card">
                 <div class="metric-value text-danger" th:text="${stats.failed}">—</div>
                 <div class="metric-label">Picați</div>
+            </div>
+        </div>
+    </div>
+
+    <div th:if="${stats != null and nationalForYear != null}" class="comparison-card">
+        <div class="row g-3 align-items-center">
+            <div class="col-md-3">
+                <div class="comparison-title">
+                    <i class="bi bi-bar-chart-line me-1"></i>Județ vs Media Națională
+                </div>
+                <div class="small mt-1 text-muted"
+                     th:text="${selectedCounty} + ' în anul ' + ${selectedYear}"></div>
+            </div>
+            <div class="col-md-4">
+                <div class="small text-muted">Media Generală</div>
+                <div class="d-flex align-items-baseline gap-2 mt-1">
+                    <span class="comparison-county-value"
+                          th:style="'color:' + (${stats.generalAverage >= nationalForYear.generalAverage} ? '#059669' : '#dc2626')"
+                          th:text="${#numbers.formatDecimal(stats.generalAverage, 1, 2)}"></span>
+                    <span th:with="diff=${stats.generalAverage - nationalForYear.generalAverage}"
+                          th:class="'comparison-delta ' + (${diff > 0.05} ? 'delta-positive' : (${diff < -0.05} ? 'delta-negative' : 'delta-neutral'))"
+                          th:text="(${diff >= 0} ? '▲ +' : '▼ ') + ${#numbers.formatDecimal(diff, 1, 2)}"></span>
+                </div>
+                <div class="small text-muted mt-1">
+                    Media națională: <strong th:text="${#numbers.formatDecimal(nationalForYear.generalAverage, 1, 2)}"></strong>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="small text-muted">Rata de trecere</div>
+                <div class="d-flex align-items-baseline gap-2 mt-1">
+                    <span class="comparison-county-value"
+                          th:style="'color:' + (${stats.passingRate >= nationalForYear.passingRate} ? '#059669' : '#dc2626')"
+                          th:text="${#numbers.formatDecimal(stats.passingRate, 1, 1) + '%'}"></span>
+                    <span th:with="diff=${stats.passingRate - nationalForYear.passingRate}"
+                          th:class="'comparison-delta ' + (${diff > 0.5} ? 'delta-positive' : (${diff < -0.5} ? 'delta-negative' : 'delta-neutral'))"
+                          th:text="(${diff >= 0} ? '▲ +' : '▼ ') + ${#numbers.formatDecimal(diff, 1, 1)} + ' pp'"></span>
+                </div>
+                <div class="small text-muted mt-1">
+                    Rata națională: <strong th:text="${#numbers.formatDecimal(nationalForYear.passingRate, 1, 1) + '%'}"></strong>
+                </div>
             </div>
         </div>
     </div>
@@ -119,13 +185,19 @@
         </div>
         <div class="col-md-6">
             <div class="card">
-                <div class="card-header">Tendință națională — Media generală (toți anii)</div>
+                <div class="card-header">
+                    Media Generală — <span style="color:#1a56db" id="countyLabelChart"></span>
+                    <span class="text-muted">vs Național</span>
+                </div>
                 <div class="card-body p-3"><canvas id="chartTrend" height="220"></canvas></div>
             </div>
         </div>
         <div class="col-12">
             <div class="card">
-                <div class="card-header">Tendința ratei de promovabilitate</div>
+                <div class="card-header">
+                    Rata de Promovabilitate — <span style="color:#059669" id="countyLabelChart2"></span>
+                    <span class="text-muted">vs Național</span>
+                </div>
                 <div class="card-body p-3"><canvas id="chartPassingRate" height="140"></canvas></div>
             </div>
         </div>
@@ -144,9 +216,8 @@
     const countyTrends = /*[[${countyTrends}]]*/ [];
     const selectedCounty = /*[[${selectedCounty}]]*/ '';
 
-    document.querySelectorAll('#countyLabel, #countyLabel2').forEach(el => {
-        if (el) el.textContent = selectedCounty;
-    });
+    document.getElementById('countyLabelChart').textContent  = selectedCounty;
+    document.getElementById('countyLabelChart2').textContent = selectedCounty;
 
     if (distribution && Object.keys(distribution).length > 0) {
         new Chart(document.getElementById('chartDistribution'), {
@@ -156,7 +227,7 @@
                 datasets: [{
                     label: 'Candidați',
                     data: Object.values(distribution),
-                    backgroundColor: Object.keys(distribution).map((k, i) => {
+                    backgroundColor: Object.keys(distribution).map(k => {
                         const v = parseFloat(k.split('-')[0]);
                         if (v >= 9) return 'rgba(5,150,105,0.8)';
                         if (v >= 7) return 'rgba(26,86,219,0.8)';
@@ -175,42 +246,78 @@
     }
 
     if (trends && trends.length > 0) {
+        const years = trends.map(t => t.year);
+        const nationalAvg  = trends.map(t => t.generalAverage);
+        const nationalRate = trends.map(t => t.passingRate);
+
+        const countyByYear = {};
+        countyTrends.forEach(t => { countyByYear[t.year] = t; });
+        const countyAvg  = years.map(y => countyByYear[y] ? countyByYear[y].generalAverage : null);
+        const countyRate = years.map(y => countyByYear[y] ? countyByYear[y].passingRate    : null);
+
         new Chart(document.getElementById('chartTrend'), {
             type: 'line',
             data: {
-                labels: trends.map(t => t.year),
-                datasets: [{
-                    label: 'Media Generală',
-                    data: trends.map(t => t.generalAverage),
-                    borderColor: '#1a56db',
-                    backgroundColor: 'rgba(26,86,219,0.08)',
-                    fill: true, tension: 0.4, pointRadius: 5,
-                    pointBackgroundColor: '#1a56db'
-                }]
+                labels: years,
+                datasets: [
+                    {
+                        label: selectedCounty,
+                        data: countyAvg,
+                        borderColor: '#1a56db',
+                        backgroundColor: 'rgba(26,86,219,0.08)',
+                        fill: false, tension: 0.4, pointRadius: 6,
+                        borderWidth: 3,
+                        pointBackgroundColor: '#1a56db'
+                    },
+                    {
+                        label: 'Național',
+                        data: nationalAvg,
+                        borderColor: '#94a3b8',
+                        borderDash: [6, 4],
+                        fill: false, tension: 0.4, pointRadius: 4,
+                        borderWidth: 2,
+                        pointBackgroundColor: '#94a3b8'
+                    }
+                ]
             },
             options: {
                 responsive: true,
+                plugins: { legend: { position: 'bottom', labels: { boxWidth: 12, font: { size: 12 } } } },
                 scales: {
-                    y: { min: 5, max: 10, grid: { color: '#f1f5f9' } },
+                    y: { min: 4, max: 10, grid: { color: '#f1f5f9' } },
                     x: { grid: { display: false } }
                 }
             }
         });
 
         new Chart(document.getElementById('chartPassingRate'), {
-            type: 'bar',
+            type: 'line',
             data: {
-                labels: trends.map(t => t.year),
-                datasets: [{
-                    label: 'Rata de trecere (%)',
-                    data: trends.map(t => t.passingRate),
-                    backgroundColor: trends.map(t => t.passingRate >= 70 ? 'rgba(5,150,105,0.7)' : 'rgba(217,119,6,0.7)'),
-                    borderRadius: 4
-                }]
+                labels: years,
+                datasets: [
+                    {
+                        label: selectedCounty + ' (%)',
+                        data: countyRate,
+                        borderColor: '#059669',
+                        backgroundColor: 'rgba(5,150,105,0.08)',
+                        fill: false, tension: 0.4, pointRadius: 6,
+                        borderWidth: 3,
+                        pointBackgroundColor: '#059669'
+                    },
+                    {
+                        label: 'Național (%)',
+                        data: nationalRate,
+                        borderColor: '#94a3b8',
+                        borderDash: [6, 4],
+                        fill: false, tension: 0.4, pointRadius: 4,
+                        borderWidth: 2,
+                        pointBackgroundColor: '#94a3b8'
+                    }
+                ]
             },
             options: {
                 responsive: true,
-                plugins: { legend: { display: false } },
+                plugins: { legend: { position: 'bottom', labels: { boxWidth: 12, font: { size: 12 } } } },
                 scales: {
                     y: { min: 0, max: 100, grid: { color: '#f1f5f9' } },
                     x: { grid: { display: false } }
