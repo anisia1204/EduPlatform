@@ -2,7 +2,7 @@
 <html lang="en" xmlns:th="http://www.thymeleaf.org">
 <head>
     <meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title th:text="${pageTitle}">Statistici EN</title>
+    <title th:text="${pageTitle}">EN Statistics</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css" rel="stylesheet">
     <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600&family=DM+Serif+Display&display=swap" rel="stylesheet">
@@ -31,12 +31,12 @@
     <div class="container">
         <a class="navbar-brand" href="/"><i class="bi bi-mortarboard-fill me-2"></i>EduPlatform</a>
         <div class="navbar-nav ms-auto d-flex flex-row">
-            <a class="nav-link active" href="/statistics/bac">Statistici BAC</a>
-            <a class="nav-link" href="/statistics/en">Statistici EN</a>
-            <a class="nav-link" href="/comparison">Comparație Județe</a>
+            <a class="nav-link" href="/statistics/bac">BAC Statistics</a>
+            <a class="nav-link active" href="/statistics/en">EN Statistics</a>
+            <a class="nav-link" href="/comparison">County Comparison</a>
             <a class="nav-link" href="/environment">Urban vs Rural</a>
-            <a class="nav-link" href="/correlation">Corelare EN→BAC</a>
-            <a class="nav-link" href="/prediction">Predicție</a>
+            <a class="nav-link" href="/correlation">EN→BAC Correlation</a>
+            <a class="nav-link" href="/prediction">Prediction</a>
             <a class="nav-link" href="/admin">Admin</a>
         </div>
     </div>
@@ -44,7 +44,7 @@
 
 <div class="page-header">
     <div class="container">
-        <div class="text-white-50 small mb-1">Evaluare Națională (clasa a VIII-a)</div>
+        <div class="text-white-50 small mb-1">National Evaluation (8th Grade)</div>
         <h1 class="mb-0" th:text="${selectedCounty} + ' · ' + ${selectedYear}">TM · 2021</h1>
     </div>
 </div>
@@ -53,19 +53,19 @@
     <div class="filter-bar">
         <div class="row g-2 align-items-end">
             <div class="col-md-3">
-                <label class="form-label small fw-semibold text-muted">JUDEȚ</label>
+                <label class="form-label small fw-semibold text-muted">COUNTY</label>
                 <select id="countySelect" class="form-select">
                     <option th:each="c : ${availableCounties}" th:value="${c}" th:text="${c}" th:selected="${c == selectedCounty}"></option>
                 </select>
             </div>
             <div class="col-md-3">
-                <label class="form-label small fw-semibold text-muted">AN</label>
+                <label class="form-label small fw-semibold text-muted">YEAR</label>
                 <select id="yearSelect" class="form-select">
                     <option th:each="y : ${availableYears}" th:value="${y}" th:text="${y}" th:selected="${y == selectedYear}"></option>
                 </select>
             </div>
             <div class="col-md-2">
-                <button onclick="applyFilter()" class="btn btn-success w-100"><i class="bi bi-search me-1"></i>Aplică</button>
+                <button onclick="applyFilter()" class="btn btn-success w-100"><i class="bi bi-search me-1"></i>Apply</button>
             </div>
         </div>
     </div>
@@ -75,27 +75,27 @@
             <div class="col-6 col-md-3">
                 <div class="metric-card">
                     <div class="metric-value text-success" th:text="${stats.totalCandidates}">—</div>
-                    <div class="metric-label">Numarul Candidaților</div>
+                    <div class="metric-label">Number of Candidates</div>
                 </div>
             </div>
             <div class="col-6 col-md-3">
                 <div class="metric-card">
                     <div class="metric-value" style="color:#059669" th:text="${#numbers.formatDecimal(stats.generalAverage, 1, 2)}">—</div>
-                    <div class="metric-label">Media Generală</div>
+                    <div class="metric-label">General Average</div>
                     <div class="score-bar"><div class="score-fill" style="background:#059669" th:style="'width:' + ${stats.generalAverage * 10} + '%;background:#059669'"></div></div>
                 </div>
             </div>
             <div class="col-6 col-md-3">
                 <div class="metric-card">
                     <div class="metric-value text-primary" th:text="${#numbers.formatDecimal(stats.romanianAverage, 1, 2)}">—</div>
-                    <div class="metric-label">Media la Limba si Literatura Română</div>
+                    <div class="metric-label">Romanian Language &amp; Literature Average</div>
                     <div class="score-bar"><div class="score-fill" style="background:#1a56db" th:style="'width:' + ${stats.romanianAverage * 10} + '%;background:#1a56db'"></div></div>
                 </div>
             </div>
             <div class="col-6 col-md-3">
                 <div class="metric-card">
                     <div class="metric-value text-warning" th:text="${#numbers.formatDecimal(stats.mathAverage, 1, 2)}">—</div>
-                    <div class="metric-label">Media la Matematică</div>
+                    <div class="metric-label">Mathematics Average</div>
                     <div class="score-bar"><div class="score-fill" style="background:#d97706" th:style="'width:' + ${stats.mathAverage * 10} + '%;background:#d97706'"></div></div>
                 </div>
             </div>
@@ -104,13 +104,13 @@
         <div class="row g-3">
             <div class="col-md-6">
                 <div class="card">
-                    <div class="card-header">Distribuția Notelor</div>
+                    <div class="card-header">Grade Distribution</div>
                     <div class="card-body p-3"><canvas id="chartDist" height="220"></canvas></div>
                 </div>
             </div>
             <div class="col-md-6">
                 <div class="card">
-                    <div class="card-header">Compararea subiectelor - Tendințe naționale</div>
+                    <div class="card-header">Subject Comparison - National Trends</div>
                     <div class="card-body p-3"><canvas id="chartTrend" height="220"></canvas></div>
                 </div>
             </div>
@@ -118,7 +118,7 @@
     </div>
 
     <div th:if="${stats == null}" class="alert alert-warning mt-3">
-        Nu există date disponibile pentru <strong th:text="${selectedCounty} + ' / ' + ${selectedYear}"></strong>.
+        No data available for <strong th:text="${selectedCounty} + ' / ' + ${selectedYear}"></strong>.
     </div>
 </div>
 
@@ -132,7 +132,7 @@
             type: 'bar',
             data: {
                 labels: Object.keys(dist),
-                datasets: [{ label: 'Candidați', data: Object.values(dist),
+                datasets: [{ label: 'Candidates', data: Object.values(dist),
                     backgroundColor: 'rgba(5,150,105,0.7)', borderRadius: 4 }]
             },
             options: { responsive: true, plugins: { legend: { display: false } },
@@ -146,11 +146,11 @@
             data: {
                 labels: trends.map(t => t.year),
                 datasets: [
-                    { label: 'Media Generală', data: trends.map(t => t.generalAverage),
+                    { label: 'General Average', data: trends.map(t => t.generalAverage),
                         borderColor: '#059669', tension: 0.4, pointRadius: 4 },
-                    { label: 'Română', data: trends.map(t => t.romanianAverage),
+                    { label: 'Romanian', data: trends.map(t => t.romanianAverage),
                         borderColor: '#1a56db', tension: 0.4, pointRadius: 4, borderDash: [4,4] },
-                    { label: 'Matematică', data: trends.map(t => t.mathAverage),
+                    { label: 'Mathematics', data: trends.map(t => t.mathAverage),
                         borderColor: '#d97706', tension: 0.4, pointRadius: 4, borderDash: [4,4] }
                 ]
             },

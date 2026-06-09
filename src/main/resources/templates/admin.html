@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="ro" xmlns:th="http://www.thymeleaf.org">
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
 <head>
     <meta charset="UTF-8">
     <title th:text="${pageTitle}">Admin</title>
@@ -27,8 +27,8 @@
 </nav>
 
 <div class="container py-5">
-    <h2><i class="bi bi-gear-fill me-2"></i>Panou Administrare</h2>
-    <p class="text-muted">Import date din fisiere XLSX (data.gov.ro), antrenament model ML.</p>
+    <h2><i class="bi bi-gear-fill me-2"></i>Administration Panel</h2>
+    <p class="text-muted">Import data from XLSX files (data.gov.ro), ML model training.</p>
 
     <div class="row g-4">
 
@@ -39,16 +39,16 @@
                 </div>
                 <div class="card-body">
                     <p class="text-muted small">
-                        Importă fișiere XLSX cu rezultate Bacalaureat descărcate de pe
+                        Import XLSX files with Baccalaureate results downloaded from
                         <a href="https://data.gov.ro/dataset?tags=bacalaureat" target="_blank">data.gov.ro</a>.
-                        Structura este detectată automat.
+                        Structure is automatically detected.
                     </p>
                     <div class="mb-3">
-                        <label class="form-label fw-semibold">An examen</label>
+                        <label class="form-label fw-semibold">Exam Year</label>
                         <input type="number" id="bacAnImport" class="form-control" value="2025" min="2015" max="2025">
                     </div>
                     <div class="mb-3">
-                        <label class="form-label fw-semibold">Fisier XLSX</label>
+                        <label class="form-label fw-semibold">XLSX File</label>
                         <input type="file" id="bacFileImport" class="form-control" accept=".xlsx">
                     </div>
                     <button id="btnImportBac" class="btn btn-primary w-100" onclick="importBac()">
@@ -62,20 +62,20 @@
         <div class="col-md-6">
             <div class="card h-100">
                 <div class="card-header bg-success text-white">
-                    <i class="bi bi-file-earmark-spreadsheet me-2"></i>Import Evaluare Națională (XLSX)
+                    <i class="bi bi-file-earmark-spreadsheet me-2"></i>Import National Evaluation (XLSX)
                 </div>
                 <div class="card-body">
                     <p class="text-muted small">
-                        Importă fișiere XLSX cu rezultate Evaluare Națională descărcate de pe
+                        Import XLSX files with National Evaluation results downloaded from
                         <a href="https://data.gov.ro/dataset?tags=evaluare+nationala" target="_blank">data.gov.ro</a>.
-                        Structura este detectată automat.
+                        Structure is automatically detected.
                     </p>
                     <div class="mb-3">
-                        <label class="form-label fw-semibold">An examen</label>
+                        <label class="form-label fw-semibold">Exam Year</label>
                         <input type="number" id="enAnImport" class="form-control" value="2025" min="2015" max="2025">
                     </div>
                     <div class="mb-3">
-                        <label class="form-label fw-semibold">Fisier XLSX</label>
+                        <label class="form-label fw-semibold">XLSX File</label>
                         <input type="file" id="enFileImport" class="form-control" accept=".xlsx">
                     </div>
                     <button id="btnImportEn" class="btn btn-success w-100" onclick="importEn()">
@@ -93,11 +93,11 @@
                 </div>
                 <div class="card-body">
                     <p class="text-muted small">
-                        Antrenează modelul Random Forest pe datele importate.
-                        Necesită minim 50 de înregistrări în baza de date.
+                        Train the Random Forest model on imported data.
+                        Requires a minimum of 50 records in the database.
                     </p>
                     <button onclick="trainModel()" class="btn btn-danger w-100 mb-3">
-                        <i class="bi bi-play-fill me-1"></i>Antrenează Modelul
+                        <i class="bi bi-play-fill me-1"></i>Train Model
                     </button>
                     <div id="mlResult" class="small"></div>
                 </div>
@@ -107,12 +107,12 @@
         <div class="col-md-6">
             <div class="card h-100">
                 <div class="card-header bg-secondary text-white">
-                    <i class="bi bi-bar-chart me-2"></i>Statistici Date Importate
+                    <i class="bi bi-bar-chart me-2"></i>Imported Data Statistics
                 </div>
                 <div class="card-body">
-                    <p class="text-muted small">Verifică câte înregistrări sunt disponibile în baza de date.</p>
+                    <p class="text-muted small">Check how many records are available in the database.</p>
                     <button onclick="loadStats()" class="btn btn-secondary w-100 mb-3">
-                        <i class="bi bi-search me-1"></i>Verifică Date
+                        <i class="bi bi-search me-1"></i>Check Data
                     </button>
                     <div id="statsResult" class="small"></div>
                 </div>
@@ -130,11 +130,11 @@
         const status = document.getElementById('bacImportStatus');
         const btn = document.getElementById('btnImportBac');
 
-        if (!file) { status.innerHTML = '<div class="alert alert-warning">Selecteaza un fisier!</div>'; return; }
+        if (!file) { status.innerHTML = '<div class="alert alert-warning">Please select a file!</div>'; return; }
 
         btn.disabled = true;
-        btn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>Import in curs...';
-        status.innerHTML = '<div class="alert alert-info">Procesare ' + file.name + '... Nu inchide pagina! (2-5 minute)</div>';
+        btn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>Import in progress...';
+        status.innerHTML = '<div class="alert alert-info">Processing ' + file.name + '... Do not close the page! (2-5 minutes)</div>';
 
         const formData = new FormData();
         formData.append('file', file);
@@ -143,12 +143,12 @@
             const resp = await fetch(`/api/import/bac/${an}`, { method: 'POST', body: formData });
             const data = await resp.json();
             if (data.salvate !== undefined) {
-                status.innerHTML = `<div class="alert alert-success">Import finalizat: <strong>${data.salvate}</strong> înregistrări salvate pentru BAC ${data.an}</div>`;
+                status.innerHTML = `<div class="alert alert-success">Import completed: <strong>${data.salvate}</strong> records saved for BAC ${data.an}</div>`;
             } else {
-                status.innerHTML = `<div class="alert alert-danger">Eroare: ${data.error}</div>`;
+                status.innerHTML = `<div class="alert alert-danger">Error: ${data.error}</div>`;
             }
         } catch (e) {
-            status.innerHTML = `<div class="alert alert-danger">Eroare: ${e.message}</div>`;
+            status.innerHTML = `<div class="alert alert-danger">Error: ${e.message}</div>`;
         } finally {
             btn.disabled = false;
             btn.innerHTML = '<i class="bi bi-upload me-1"></i>Import BAC';
@@ -161,11 +161,11 @@
         const status = document.getElementById('enImportStatus');
         const btn = document.getElementById('btnImportEn');
 
-        if (!file) { status.innerHTML = '<div class="alert alert-warning">Selecteaza un fisier!</div>'; return; }
+        if (!file) { status.innerHTML = '<div class="alert alert-warning">Please select a file!</div>'; return; }
 
         btn.disabled = true;
-        btn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>Import in curs...';
-        status.innerHTML = '<div class="alert alert-info">⏳ Procesare ' + file.name + '... Nu inchide pagina! (2-5 minute)</div>';
+        btn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>Import in progress...';
+        status.innerHTML = '<div class="alert alert-info">⏳ Processing ' + file.name + '... Do not close the page! (2-5 minutes)</div>';
 
         const formData = new FormData();
         formData.append('file', file);
@@ -174,12 +174,12 @@
             const resp = await fetch(`/api/import/en/${an}`, { method: 'POST', body: formData });
             const data = await resp.json();
             if (data.salvate !== undefined) {
-                status.innerHTML = `<div class="alert alert-success">Import finalizat: <strong>${data.salvate}</strong> înregistrări salvate pentru EN ${data.an}</div>`;
+                status.innerHTML = `<div class="alert alert-success">Import completed: <strong>${data.salvate}</strong> records saved for EN ${data.an}</div>`;
             } else {
-                status.innerHTML = `<div class="alert alert-danger">Eroare: ${data.error}</div>`;
+                status.innerHTML = `<div class="alert alert-danger">Error: ${data.error}</div>`;
             }
         } catch (e) {
-            status.innerHTML = `<div class="alert alert-danger">Eroare: ${e.message}</div>`;
+            status.innerHTML = `<div class="alert alert-danger">Error: ${e.message}</div>`;
         } finally {
             btn.disabled = false;
             btn.innerHTML = '<i class="bi bi-upload me-1"></i>Import EN';
@@ -187,33 +187,33 @@
     }
 
     async function trainModel() {
-        document.getElementById('mlResult').innerHTML = '<div class="spinner-border spinner-border-sm"></div> Antrenez modelul...';
+        document.getElementById('mlResult').innerHTML = '<div class="spinner-border spinner-border-sm"></div> Training model...';
         try {
             const r = await fetch('/api/ml/train', {method:'POST'}).then(r=>r.json());
             document.getElementById('mlResult').innerHTML = `
             <div class="alert alert-success py-2">
-                <strong>Model antrenat!</strong><br>
+                <strong>Model trained!</strong><br>
                 Accuracy: ${(r.accuracy*100).toFixed(1)}% |
                 F1: ${(r.f1Score*100).toFixed(1)}% |
                 Training examples: ${(r.trainingExamples || 0).toLocaleString()}
             </div>`;
         } catch(e) {
-            document.getElementById('mlResult').innerHTML = `<div class="alert alert-danger">Eroare: ${e.message}</div>`;
+            document.getElementById('mlResult').innerHTML = `<div class="alert alert-danger">Error: ${e.message}</div>`;
         }
     }
 
     async function loadStats() {
-        document.getElementById('statsResult').innerHTML = '<div class="spinner-border spinner-border-sm"></div> Se incarca...';
+        document.getElementById('statsResult').innerHTML = '<div class="spinner-border spinner-border-sm"></div> Loading...';
         try {
             const ani = await fetch('/api/meta/ani').then(r=>r.json());
             const judete = await fetch('/api/meta/judete').then(r=>r.json());
             document.getElementById('statsResult').innerHTML = `
             <div class="alert alert-info py-2">
-                <strong>Ani BAC disponibili:</strong> ${ani.join(', ')}<br>
-                <strong>Județe:</strong> ${judete.length} județe disponibile
+                <strong>Available BAC years:</strong> ${ani.join(', ')}<br>
+                <strong>Counties:</strong> ${judete.length} counties available
             </div>`;
         } catch(e) {
-            document.getElementById('statsResult').innerHTML = `<div class="alert alert-danger">Eroare: ${e.message}</div>`;
+            document.getElementById('statsResult').innerHTML = `<div class="alert alert-danger">Error: ${e.message}</div>`;
         }
     }
 </script>
