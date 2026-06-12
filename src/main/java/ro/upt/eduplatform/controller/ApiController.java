@@ -95,6 +95,19 @@ public class ApiController {
         return ResponseEntity.ok(mlService.predict(request));
     }
 
+    @PostMapping("/ml/train-en")
+    public ResponseEntity<MlPredictionService.ModelMetrics> trainEnBasedModel() {
+        log.info("Antrenament EN-based ML solicitat prin API");
+        return ResponseEntity.ok(mlService.trainEnBasedModel());
+    }
+
+    @PostMapping("/ml/predict-from-en")
+    public ResponseEntity<MlPredictionService.PredictionResult> predictFromEn(
+            @RequestBody MlPredictionService.EnBasedPredictionRequest request) {
+        log.info("Predictie EN-based solicitata: {}", request);
+        return ResponseEntity.ok(mlService.predictFromEn(request));
+    }
+
     @GetMapping("/ml/status")
     public ResponseEntity<Map<String, Object>> mlStatus() {
         return ResponseEntity.ok(Map.of(
@@ -102,6 +115,16 @@ public class ApiController {
                 "metrici", mlService.getLastMetrics() != null
                         ? mlService.getLastMetrics()
                         : "Modelul nu a fost inca antrenat. Apeleaza POST /api/ml/train"
+        ));
+    }
+
+    @GetMapping("/ml/status-en")
+    public ResponseEntity<Map<String, Object>> mlStatusEn() {
+        return ResponseEntity.ok(Map.of(
+                "modelAntrenat", mlService.isModelEnTrained(),
+                "metrici", mlService.getLastMetricsEn() != null
+                        ? mlService.getLastMetricsEn()
+                        : "Modelul EN nu a fost inca antrenat. Apeleaza POST /api/ml/train-en"
         ));
     }
 
@@ -125,7 +148,7 @@ public class ApiController {
         return ResponseEntity.ok(statisticsService.getSummary());
     }
 
-@GetMapping("/environment/bac/{year}")
+    @GetMapping("/environment/bac/{year}")
     public ResponseEntity<List<StatisticsService.EnvironmentStatistics>> bacEnvironmentStats(
             @PathVariable int year) {
         return ResponseEntity.ok(statisticsService.getBacEnvironmentStatistics(year));
