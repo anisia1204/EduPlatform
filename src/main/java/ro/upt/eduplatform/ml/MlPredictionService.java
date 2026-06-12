@@ -5,6 +5,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import ro.upt.eduplatform.model.BacResult;
 import ro.upt.eduplatform.repository.BacResultRepository;
+import ro.upt.eduplatform.ml.EnImputationService;
 
 import java.util.*;
 import java.util.stream.Collectors;
@@ -15,6 +16,7 @@ import java.util.stream.Collectors;
 public class MlPredictionService {
 
     private final BacResultRepository bacRepository;
+    private final EnImputationService enImputationService;
 
     private static final int N_FEATURES = 6;
     private static final String[] FEATURE_NAMES = {
@@ -26,9 +28,21 @@ public class MlPredictionService {
             "Environment (urban/rural)"
     };
 
+    private static final int N_FEATURES_EN = 4;
+    private static final String[] FEATURE_NAMES_EN = {
+            "National Evaluation Grade",
+            "Specialization Profile",
+            "County",
+            "Environment (urban/rural)"
+    };
+
     private RandomForestModel trainedModel = null;
     private boolean modelTrained = false;
     private ModelMetrics lastMetrics = null;
+
+    private RandomForestModel trainedModelEn = null;
+    private boolean modelEnTrained = false;
+    private ModelMetrics lastMetricsEn = null;
 
     private static final List<String> COUNTIES = List.of(
             "AB","AR","AG","BC","BH","BN","BT","BV","BR","B","BZ","CS",
@@ -46,6 +60,13 @@ public class MlPredictionService {
             Double electiveSubjectGrade,
             Double enRomanianGrade,
             Double enMathGrade,
+            Double enAverage
+    ) {}
+
+    public record EnBasedPredictionRequest(
+            String county,
+            String profile,
+            String environment,
             Double enAverage
     ) {}
 
@@ -159,6 +180,147 @@ public class MlPredictionService {
                 importance
         );
     }
+
+    public ModelMetrics trainEnBasedModel() {
+        log.info("Starting EN-based ML model training...");
+
+        List<BacResult> all = bacRepository.findAllForEnBasedTraining();
+
+       List<Object[]> pairs = new ArrayList<>();
+        int withGrade = 0, withoutGrade = 0;
+        for (BacResult r : all) {
+            if (r.getIsPassed() == null) continue;
+
+            Double imputedEn;
+            if (r.getGeneralAverage() != null) {
+                imputedEn = enImputationService.imputeEnGrade(r);
+                if (imputedEn != null) withGrade++;
+            } else {
+                imputedEn = enImputationService.imputeEnGradeFromCohortOnly(r);
+                if (imputedEn != null) withoutGrade++;
+            }
+            if (imputedEn == null) continue;
+            pairs.add(new Object[]{r, imputedEn});
+        }
+
+        log.info("EN-based training: {} records total ({} with BAC grade + linear imputation, " +
+                        "{} without BAC grade + cohort-mean imputation)",
+                pairs.size(), withGrade, withoutGrade);
+
+        if (pairs.size() < 100) {
+            return new ModelMetrics(0.0, 0.0, 0.0, 0.0, pairs.size(), "INSUFFICIENT_DATA");
+        }
+
+        Collections.shuffle(pairs, new Random(42));
+
+        double[][] X = new double[pairs.size()][N_FEATURES_EN];
+        int[] y = new int[pairs.size()];
+        int passCount = 0;
+        for (int i = 0; i < pairs.size(); i++) {
+            BacResult r = (BacResult) pairs.get(i)[0];
+            Double enGrade = (Double) pairs.get(i)[1];
+            X[i] = extractFeaturesEn(r, enGrade);
+            y[i] = Boolean.TRUE.equals(r.getIsPassed()) ? 1 : 0;
+            if (y[i] == 1) passCount++;
+        }
+        log.info("Class distribution: {} pass ({}%), {} fail ({}%)",
+                passCount, round3(100.0 * passCount / pairs.size()),
+                pairs.size() - passCount, round3(100.0 * (pairs.size() - passCount) / pairs.size()));
+
+        int splitIdx = (int) (pairs.size() * 0.8);
+        double[][] xTrain = Arrays.copyOfRange(X, 0, splitIdx);
+        double[][] xTest  = Arrays.copyOfRange(X, splitIdx, X.length);
+        int[] yTrain = Arrays.copyOfRange(y, 0, splitIdx);
+        int[] yTest  = Arrays.copyOfRange(y, splitIdx, y.length);
+
+        trainedModelEn = new RandomForestModel(100, xTrain, yTrain);
+        modelEnTrained = true;
+
+        int correct = 0, tp = 0, fp = 0, fn = 0;
+        for (int i = 0; i < xTest.length; i++) {
+            int pred = trainedModelEn.predict(xTest[i]);
+            if (pred == yTest[i]) correct++;
+            if (pred == 1 && yTest[i] == 1) tp++;
+            if (pred == 1 && yTest[i] == 0) fp++;
+            if (pred == 0 && yTest[i] == 1) fn++;
+        }
+
+        double accuracy  = (double) correct / xTest.length;
+        double precision = (tp + fp) > 0 ? (double) tp / (tp + fp) : 0;
+        double recall    = (tp + fn) > 0 ? (double) tp / (tp + fn) : 0;
+        double f1 = (precision + recall) > 0 ? 2 * precision * recall / (precision + recall) : 0;
+
+        lastMetricsEn = new ModelMetrics(
+                round3(accuracy), round3(precision), round3(recall), round3(f1),
+                pairs.size(), "TRAINED"
+        );
+
+        log.info("EN-based model trained: accuracy={}, precision={}, recall={}, f1={}, n={}",
+                lastMetricsEn.accuracy(), lastMetricsEn.precision(),
+                lastMetricsEn.recall(), lastMetricsEn.f1Score(), pairs.size());
+
+        double[] imp = trainedModelEn.getFeatureImportance();
+        for (int i = 0; i < FEATURE_NAMES_EN.length; i++) {
+            log.info("  EN Feature importance [{}]: {}", FEATURE_NAMES_EN[i], round3(imp[i]));
+        }
+
+        return lastMetricsEn;
+    }
+
+    public PredictionResult predictFromEn(EnBasedPredictionRequest req) {
+        if (!modelEnTrained) {
+            log.info("EN-based model not trained yet, training now...");
+            trainEnBasedModel();
+        }
+
+        double enGrade = orDefault(req.enAverage(), 5.0);
+        double[] features = new double[]{
+                enGrade,
+                encodeProfile(req.profile()),
+                encodeCounty(req.county()),
+                encodeEnvironment(req.environment())
+        };
+
+        double probability = trainedModelEn.predictProbability(features);
+
+        String riskLevel;
+        if (probability >= 0.75)      riskLevel = "Low risk";
+        else if (probability >= 0.5)  riskLevel = "Moderate risk";
+        else                          riskLevel = "High risk";
+
+        Map<String, Double> importance = buildImportanceMapEn(trainedModelEn.getFeatureImportance());
+
+        return new PredictionResult(
+                round3(probability),
+                gradeCategory(enGrade),
+                round2(enGrade),
+                riskLevel,
+                importance
+        );
+    }
+
+    private double[] extractFeaturesEn(BacResult r, Double enGrade) {
+        return new double[]{
+                enGrade,
+                encodeProfile(r.getProfile()),
+                encodeCounty(r.getCounty()),
+                encodeEnvironment(r.getEnvironment())
+        };
+    }
+
+    private Map<String, Double> buildImportanceMapEn(double[] importance) {
+        Map<String, Double> map = new LinkedHashMap<>();
+        Integer[] idx = new Integer[FEATURE_NAMES_EN.length];
+        for (int i = 0; i < idx.length; i++) idx[i] = i;
+        Arrays.sort(idx, (a, b) -> Double.compare(importance[b], importance[a]));
+        for (int i : idx) {
+            map.put(FEATURE_NAMES_EN[i], round3(importance[i]));
+        }
+        return map;
+    }
+
+    public ModelMetrics getLastMetricsEn()  { return lastMetricsEn; }
+    public boolean isModelEnTrained()       { return modelEnTrained; }
 
     private double[] extractFeatures(BacResult r) {
         return new double[]{
