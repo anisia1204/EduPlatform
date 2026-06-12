@@ -89,15 +89,15 @@
         <div class="col-md-6">
             <div class="card h-100">
                 <div class="card-header bg-danger text-white">
-                    <i class="bi bi-cpu me-2"></i>Machine Learning
+                    <i class="bi bi-cpu me-2"></i>Simulation-Based Model Training
                 </div>
                 <div class="card-body">
                     <p class="text-muted small">
-                        Train the Random Forest model on imported data.
-                        Requires a minimum of 50 records in the database.
+                        Train the Random Forest classifier used by the BAC simulation check.
+                        Uses the three BAC subject grades as features.
                     </p>
                     <button onclick="trainModel()" class="btn btn-danger w-100 mb-3">
-                        <i class="bi bi-play-fill me-1"></i>Train Model
+                        <i class="bi bi-play-fill me-1"></i>Train Simulation Model
                     </button>
                     <div id="mlResult" class="small"></div>
                 </div>
@@ -106,15 +106,19 @@
 
         <div class="col-md-6">
             <div class="card h-100">
-                <div class="card-header bg-secondary text-white">
-                    <i class="bi bi-bar-chart me-2"></i>Imported Data Statistics
+                <div class="card-header bg-warning text-dark">
+                    <i class="bi bi-cpu me-2"></i>EN-Based Model Training
                 </div>
                 <div class="card-body">
-                    <p class="text-muted small">Check how many records are available in the database.</p>
-                    <button onclick="loadStats()" class="btn btn-secondary w-100 mb-3">
-                        <i class="bi bi-search me-1"></i>Check Data
+                    <p class="text-muted small">
+                        Train the Random Forest classifier that predicts BAC pass probability
+                        from the National Evaluation grade and demographic context. Uses imputed
+                        EN grades derived from cohort statistics.
+                    </p>
+                    <button onclick="trainEnModel()" class="btn btn-warning w-100 mb-3">
+                        <i class="bi bi-play-fill me-1"></i>Train EN-Based Model
                     </button>
-                    <div id="statsResult" class="small"></div>
+                    <div id="mlResultEn" class="small"></div>
                 </div>
             </div>
         </div>
@@ -202,18 +206,19 @@
         }
     }
 
-    async function loadStats() {
-        document.getElementById('statsResult').innerHTML = '<div class="spinner-border spinner-border-sm"></div> Loading...';
+    async function trainEnModel() {
+        document.getElementById('mlResultEn').innerHTML = '<div class="spinner-border spinner-border-sm"></div> Training EN-based model... (this may take a few minutes)';
         try {
-            const ani = await fetch('/api/meta/ani').then(r=>r.json());
-            const judete = await fetch('/api/meta/judete').then(r=>r.json());
-            document.getElementById('statsResult').innerHTML = `
-            <div class="alert alert-info py-2">
-                <strong>Available BAC years:</strong> ${ani.join(', ')}<br>
-                <strong>Counties:</strong> ${judete.length} counties available
+            const r = await fetch('/api/ml/train-en', {method:'POST'}).then(r=>r.json());
+            document.getElementById('mlResultEn').innerHTML = `
+            <div class="alert alert-success py-2">
+                <strong>EN-based model trained!</strong><br>
+                Accuracy: ${(r.accuracy*100).toFixed(1)}% |
+                F1: ${(r.f1Score*100).toFixed(1)}% |
+                Training examples: ${(r.trainingExamples || 0).toLocaleString()}
             </div>`;
         } catch(e) {
-            document.getElementById('statsResult').innerHTML = `<div class="alert alert-danger">Error: ${e.message}</div>`;
+            document.getElementById('mlResultEn').innerHTML = `<div class="alert alert-danger">Error: ${e.message}</div>`;
         }
     }
 </script>
