@@ -34,6 +34,12 @@
         .importance-fill { height: 100%; border-radius: 4px; background: #dc2626; }
         .grade-display { font-size: 3rem; font-weight: 700; letter-spacing: -0.04em; }
         .info-note { background: #f0f9ff; border: 1px solid #bae6fd; border-radius: 10px; padding: 1rem; font-size: 0.85rem; color: #0369a1; }
+        .mode-tabs { display: flex; gap: 0.5rem; margin-bottom: 1.25rem; }
+        .mode-tab { flex: 1; padding: 0.7rem 0.9rem; text-align: center; background: #f8fafc; border: 1px solid var(--border); border-radius: 8px;
+                    cursor: pointer; font-size: 0.82rem; font-weight: 500; color: var(--slate); transition: all 0.15s; }
+        .mode-tab.active { background: var(--navy); color: white; border-color: var(--navy); font-weight: 600; }
+        .mode-tab:hover:not(.active) { background: #e2e8f0; }
+        .mode-description { font-size: 0.8rem; color: var(--slate); margin-bottom: 1rem; line-height: 1.4; }
     </style>
 </head>
 <body>
@@ -71,12 +77,11 @@
 
     <div class="info-note mb-4">
         <i class="bi bi-info-circle me-2"></i>
-        <strong>How it works:</strong> A Random Forest classifier is trained on
-        <span id="trainingCount">—</span> BAC exam records (2015–2025).
-        It predicts the <strong>probability of passing</strong> based on subject grades,
-        specialization, county and environment. The <strong>estimated average</strong>
-        is the arithmetic mean of all grades you enter (BAC + EN if provided).
-        Model accuracy on test set: <strong id="modelAccuracy">—</strong>.
+        <strong>Two prediction modes available:</strong>
+        Use <strong>EN-based prediction</strong> to estimate your BAC chances based on your
+        National Evaluation grade and high school choice — useful before or during high school.
+        Use <strong>BAC simulation check</strong> to verify whether estimated BAC grades
+        from your practice exams would lead to passing — useful in your final year.
     </div>
 
     <div class="row g-4">
@@ -84,6 +89,24 @@
             <div class="card">
                 <div class="card-header">Student Profile</div>
                 <div class="card-body p-4">
+
+                    <div class="mode-tabs">
+                        <div class="mode-tab active" id="tabEn" onclick="setMode('en')">
+                            <i class="bi bi-graph-up-arrow me-1"></i>EN-based prediction
+                        </div>
+                        <div class="mode-tab" id="tabBac" onclick="setMode('bac')">
+                            <i class="bi bi-calculator me-1"></i>BAC simulation check
+                        </div>
+                    </div>
+
+                    <div class="mode-description" id="modeDescription">
+                        <strong>Predicting BAC outcome from EN result.</strong>
+                        Enter your National Evaluation average and the high school
+                        characteristics. The model is trained on historical BAC records
+                        with EN grades estimated using cohort statistics and the Pearson
+                        correlation established at the county level.
+                    </div>
+
                     <div class="row g-3">
                         <div class="col-md-6">
                             <label class="form-label">County</label>
@@ -106,37 +129,49 @@
                             </select>
                         </div>
 
-                        <div class="col-12"><hr class="my-1"><p class="small text-muted mb-1">Expected BAC Grades (1–10)</p></div>
-
-                        <div class="col-12">
-                            <label class="form-label">Romanian: <span id="romVal" class="text-danger fw-bold">7.0</span></label>
-                            <input type="range" id="romanianGrade" class="form-range" min="1" max="10" step="0.5" value="7.0"
-                                   oninput="document.getElementById('romVal').textContent = parseFloat(this.value).toFixed(1)">
-                            <div class="range-label"><span>1</span><span>10</span></div>
-                        </div>
-                        <div class="col-12">
-                            <label class="form-label">Mandatory Subject: <span id="mandVal" class="text-danger fw-bold">7.0</span></label>
-                            <input type="range" id="mandatoryGrade" class="form-range" min="1" max="10" step="0.5" value="7.0"
-                                   oninput="document.getElementById('mandVal').textContent = parseFloat(this.value).toFixed(1)">
-                            <div class="range-label"><span>1</span><span>10</span></div>
-                        </div>
-                        <div class="col-12">
-                            <label class="form-label">Elective Subject: <span id="electVal" class="text-danger fw-bold">7.0</span></label>
-                            <input type="range" id="electiveGrade" class="form-range" min="1" max="10" step="0.5" value="7.0"
-                                   oninput="document.getElementById('electVal').textContent = parseFloat(this.value).toFixed(1)">
-                            <div class="range-label"><span>1</span><span>10</span></div>
+                        <div id="enBasedFields" class="col-12">
+                            <hr class="my-1">
+                            <p class="small text-muted mb-2">National Evaluation Result (1–10)</p>
+                            <label class="form-label">EN Average</label>
+                            <input type="number" id="enAverageMain" class="form-control"
+                                   min="1" max="10" step="0.01" placeholder="e.g. 8.50" value="8.00">
+                            <div class="form-text" style="font-size:0.75rem">
+                                Enter the overall average from your 8th grade National Evaluation exam.
+                            </div>
                         </div>
 
-                        <div class="col-12 mt-1">
-                            <div style="background:#f0f9ff;border:1px solid #bae6fd;border-radius:8px;padding:0.75rem 1rem">
+                        <div id="bacBasedFields" class="col-12" style="display:none">
+                            <hr class="my-1">
+                            <p class="small text-muted mb-1">Estimated BAC Grades from simulation (1–10)</p>
+
+                            <div class="mt-2">
+                                <label class="form-label">Romanian: <span id="romVal" class="text-danger fw-bold">7.0</span></label>
+                                <input type="range" id="romanianGrade" class="form-range" min="1" max="10" step="0.5" value="7.0"
+                                       oninput="document.getElementById('romVal').textContent = parseFloat(this.value).toFixed(1)">
+                                <div class="range-label"><span>1</span><span>10</span></div>
+                            </div>
+                            <div class="mt-2">
+                                <label class="form-label">Mandatory Subject: <span id="mandVal" class="text-danger fw-bold">7.0</span></label>
+                                <input type="range" id="mandatoryGrade" class="form-range" min="1" max="10" step="0.5" value="7.0"
+                                       oninput="document.getElementById('mandVal').textContent = parseFloat(this.value).toFixed(1)">
+                                <div class="range-label"><span>1</span><span>10</span></div>
+                            </div>
+                            <div class="mt-2">
+                                <label class="form-label">Elective Subject: <span id="electVal" class="text-danger fw-bold">7.0</span></label>
+                                <input type="range" id="electiveGrade" class="form-range" min="1" max="10" step="0.5" value="7.0"
+                                       oninput="document.getElementById('electVal').textContent = parseFloat(this.value).toFixed(1)">
+                                <div class="range-label"><span>1</span><span>10</span></div>
+                            </div>
+
+                            <div class="mt-3" style="background:#f0f9ff;border:1px solid #bae6fd;border-radius:8px;padding:0.75rem 1rem">
                                 <div class="d-flex align-items-center gap-2 mb-2">
                                     <span class="small fw-semibold text-primary">National Evaluation Grades</span>
                                     <span class="badge" style="background:#dbeafe;color:#1e3a8a;font-size:0.7rem">Optional</span>
                                 </div>
                                 <p class="small text-muted mb-2" style="font-size:0.78rem">
-                                    If you know your 8th grade EN results, enter them here.
-                                    They will be included equally with your expected BAC grades
-                                    when computing the estimated average.
+                                    If you know your 8th grade EN results, enter them here. They are
+                                    used only to compute the estimated average shown in the result, not
+                                    by the simulation-check model itself.
                                 </p>
                                 <div class="row g-2">
                                     <div class="col-4">
@@ -160,7 +195,7 @@
 
                         <div class="col-12 mt-2">
                             <button class="btn-predict" onclick="runPrediction()" id="predictBtn">
-                                <i class="bi bi-cpu me-2"></i>Predict BAC Outcome
+                                <i class="bi bi-cpu me-2"></i><span id="predictBtnLabel">Predict BAC Outcome</span>
                             </button>
                         </div>
                     </div>
@@ -233,42 +268,92 @@
 
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 <script>
-    fetch('/api/ml/status').then(r => r.json()).then(s => {
-        if (!s.modelAntrenat) {
-            document.getElementById('notTrainedAlert').style.display = 'block';
-            document.getElementById('predictBtn').disabled = true;
+    let currentMode = 'en'; // default to EN-based
+
+    function setMode(mode) {
+        currentMode = mode;
+        const tabEn = document.getElementById('tabEn');
+        const tabBac = document.getElementById('tabBac');
+        const enFields = document.getElementById('enBasedFields');
+        const bacFields = document.getElementById('bacBasedFields');
+        const description = document.getElementById('modeDescription');
+        const btnLabel = document.getElementById('predictBtnLabel');
+
+        if (mode === 'en') {
+            tabEn.classList.add('active');
+            tabBac.classList.remove('active');
+            enFields.style.display = 'block';
+            bacFields.style.display = 'none';
+            description.innerHTML = '<strong>Predicting BAC outcome from EN result.</strong> ' +
+                'Enter your National Evaluation average and the high school characteristics. ' +
+                'The model is trained on historical BAC records with EN grades estimated using ' +
+                'cohort statistics and the Pearson correlation established at the county level.';
+            btnLabel.textContent = 'Predict BAC Outcome from EN';
+        } else {
+            tabEn.classList.remove('active');
+            tabBac.classList.add('active');
+            enFields.style.display = 'none';
+            bacFields.style.display = 'block';
+            description.innerHTML = '<strong>Checking BAC outcome from simulated grades.</strong> ' +
+                'Enter the grades you expect or obtained in a BAC simulation. The model verifies ' +
+                'whether these grades, together with your demographics, correspond to a passing ' +
+                'outcome in the training data. Useful as a sanity check on simulation results.';
+            btnLabel.textContent = 'Check BAC Outcome';
         }
-        if (s.metrici && typeof s.metrici === 'object') {
-            document.getElementById('trainingCount').textContent =
-                (s.metrici.trainingExamples || '—').toLocaleString();
-            document.getElementById('modelAccuracy').textContent =
-                s.metrici.accuracy ? (s.metrici.accuracy * 100).toFixed(1) + '%' : '—';
-        }
-    }).catch(() => {});
+
+        document.getElementById('placeholderCard').style.display = 'block';
+        document.getElementById('resultCard').style.display = 'none';
+        document.getElementById('loadingCard').style.display = 'none';
+
+        loadModelStatus();
+    }
+
+    function loadModelStatus() {
+        const statusUrl = currentMode === 'en' ? '/api/ml/status-en' : '/api/ml/status';
+        fetch(statusUrl).then(r => r.json()).then(s => {
+            const trained = s.modelAntrenat;
+            document.getElementById('notTrainedAlert').style.display = trained ? 'none' : 'block';
+            document.getElementById('predictBtn').disabled = !trained;
+        }).catch(() => {});
+    }
+
+    loadModelStatus();
 
     async function runPrediction() {
-        const enRom  = document.getElementById('enRomanian').value;
-        const enMath = document.getElementById('enMath').value;
-        const enAvg  = document.getElementById('enAverage').value;
-
-        const body = {
-            county: document.getElementById('county').value,
-            profile: document.getElementById('profile').value,
-            environment: document.getElementById('environment').value,
-            romanianGrade: parseFloat(document.getElementById('romanianGrade').value),
-            mandatorySubjectGrade: parseFloat(document.getElementById('mandatoryGrade').value),
-            electiveSubjectGrade: parseFloat(document.getElementById('electiveGrade').value),
-            enRomanianGrade: enRom  ? parseFloat(enRom)  : null,
-            enMathGrade:     enMath ? parseFloat(enMath) : null,
-            enAverage:       enAvg  ? parseFloat(enAvg)  : null
-        };
-
         document.getElementById('placeholderCard').style.display = 'none';
         document.getElementById('resultCard').style.display = 'none';
         document.getElementById('loadingCard').style.display = 'block';
 
         try {
-            const r = await fetch('/api/ml/predict', {
+            let url, body;
+
+            if (currentMode === 'en') {
+                url = '/api/ml/predict-from-en';
+                body = {
+                    county: document.getElementById('county').value,
+                    profile: document.getElementById('profile').value,
+                    environment: document.getElementById('environment').value,
+                    enAverage: parseFloat(document.getElementById('enAverageMain').value)
+                };
+            } else {
+                url = '/api/ml/predict';
+                const enRom  = document.getElementById('enRomanian').value;
+                const enMath = document.getElementById('enMath').value;
+                const enAvg  = document.getElementById('enAverage').value;
+                body = {
+                    county: document.getElementById('county').value,
+                    profile: document.getElementById('profile').value,
+                    environment: document.getElementById('environment').value,
+                    romanianGrade: parseFloat(document.getElementById('romanianGrade').value),
+                    mandatorySubjectGrade: parseFloat(document.getElementById('mandatoryGrade').value),
+                    electiveSubjectGrade: parseFloat(document.getElementById('electiveGrade').value),
+                    enRomanianGrade: enRom  ? parseFloat(enRom)  : null,
+                    enMathGrade:     enMath ? parseFloat(enMath) : null,
+                    enAverage:       enAvg  ? parseFloat(enAvg)  : null
+                };
+            }
+
+            const r = await fetch(url, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(body)
@@ -303,7 +388,6 @@
         document.getElementById('gradeCategory').textContent =
             data.predictedCategory ? 'Category: ' + data.predictedCategory : '';
 
-        // Feature importance bars
         const panel = document.getElementById('importancePanel');
         panel.innerHTML = '';
         if (data.featureImportance) {
@@ -323,17 +407,20 @@
 
         const interp = document.getElementById('interpretationText');
         let text = '';
+        const modeText = currentMode === 'en'
+            ? 'Based on your EN result and high school profile, '
+            : 'Based on the simulation grades you entered, ';
         if (prob >= 75) {
-            text = `<span class="text-success fw-semibold">✓ Good prognosis.</span> Based on the input profile, ` +
-                `the model predicts a ${prob}% chance of passing the BAC exam with an estimated average of ` +
-                `${data.estimatedAverage}. The most influential factors are subject grades.`;
+            text = `<span class="text-success fw-semibold">✓ Good prognosis.</span> ${modeText}` +
+                `the model estimates a ${prob}% chance of passing the BAC exam.`;
         } else if (prob >= 50) {
-            text = `<span class="text-warning fw-semibold">⚠ Uncertain outcome.</span> The model estimates ` +
-                `a ${prob}% passing probability. Performance may vary depending on actual exam conditions.`;
+            text = `<span class="text-warning fw-semibold">⚠ Uncertain outcome.</span> ${modeText}` +
+                `the model estimates a ${prob}% passing probability. Performance may vary depending on ` +
+                `actual exam conditions and individual preparation.`;
         } else {
-            text = `<span class="text-danger fw-semibold">✗ At-risk profile.</span> The model estimates ` +
-                `only a ${prob}% passing probability. Lower grades, rural environment or weaker profiles ` +
-                `are associated with higher risk in the training data.`;
+            text = `<span class="text-danger fw-semibold">✗ At-risk profile.</span> ${modeText}` +
+                `the model estimates only a ${prob}% passing probability. ` +
+                `Demographic and regional factors associated with lower pass rates contribute to this estimate.`;
         }
         interp.innerHTML = text;
     }
