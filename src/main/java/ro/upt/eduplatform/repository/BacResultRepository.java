@@ -27,8 +27,10 @@ public interface BacResultRepository extends JpaRepository<BacResult, Long> {
     @Query("SELECT b.year, AVG(b.generalAverage), COUNT(b) FROM BacResult b GROUP BY b.year ORDER BY b.year")
     List<Object[]> statisticsPerYear();
 
-    @Query("SELECT b.county, AVG(b.generalAverage), COUNT(b), SUM(CASE WHEN b.isPassed = true THEN 1 ELSE 0 END) " +
-            "FROM BacResult b WHERE b.year = :year GROUP BY b.county ORDER BY b.county")
+    @Query("SELECT b.county, AVG(b.generalAverage), COUNT(b), " +
+            "SUM(CASE WHEN b.isPassed = true THEN 1 ELSE 0 END) " +
+            "FROM BacResult b WHERE b.year = :year " +
+            "GROUP BY b.county ORDER BY b.county")
     List<Object[]> statisticsPerCountyAndYear(@Param("year") Integer year);
 
     @Query("SELECT AVG(b.generalAverage) FROM BacResult b WHERE b.year = :year AND b.generalAverage IS NOT NULL")
@@ -43,6 +45,9 @@ public interface BacResultRepository extends JpaRepository<BacResult, Long> {
 
     @Query("SELECT b FROM BacResult b WHERE b.generalAverage IS NOT NULL AND b.isPassed IS NOT NULL")
     List<BacResult> findAllWithCompleteData();
+
+    @Query("SELECT b FROM BacResult b WHERE b.year >= 2019 AND b.year <> 2022")
+    List<BacResult> findAllForEnBasedTraining();
 
     @Query("SELECT b.year, AVG(b.generalAverage), COUNT(b), " +
             "(COUNT(CASE WHEN b.isPassed = true THEN 1 END) * 100.0 / COUNT(b)) " +
