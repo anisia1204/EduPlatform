@@ -52,4 +52,11 @@ public interface EnResultRepository extends JpaRepository<EnResult, Long> {
             "AND UPPER(e.environment) IN ('URBAN', 'RURAL') " +
             "GROUP BY e.year, UPPER(e.environment) ORDER BY e.year, UPPER(e.environment)")
     List<Object[]> environmentTrendsAllYears();
+
+    @Query("SELECT e.county, UPPER(e.environment), AVG(e.average), COUNT(e) " +
+            "FROM EnResult e WHERE e.year = :year AND e.environment IS NOT NULL " +
+            "AND UPPER(e.environment) IN ('URBAN', 'RURAL') AND e.county <> 'XX' " +
+            "AND e.average IS NOT NULL " +
+            "GROUP BY e.county, UPPER(e.environment) ORDER BY e.county")
+    List<Object[]> statisticsByCountyEnvironmentYear(@Param("year") Integer year);
 }
