@@ -202,7 +202,7 @@
                         </div>
                     </div>
 
-                    <div class="col-md-5">
+                    <div class="col-md-5" id="avgGradeCol">
                         <div class="card h-100">
                             <div class="card-header">Estimated Average <span class="fw-normal text-muted" style="font-size:0.8rem">(arithmetic mean of entered grades)</span></div>
                             <div class="card-body text-center p-3">
@@ -212,7 +212,7 @@
                         </div>
                     </div>
 
-                    <div class="col-md-7">
+                    <div class="col-md-7" id="importanceCol">
                         <div class="card h-100">
                             <div class="card-header">Feature Importance</div>
                             <div class="card-body p-3" id="importancePanel"></div>
@@ -250,6 +250,18 @@
         const bacFields = document.getElementById('bacBasedFields');
         const description = document.getElementById('modeDescription');
         const btnLabel = document.getElementById('predictBtnLabel');
+        const avgGradeCol = document.getElementById('avgGradeCol');
+        const importanceCol = document.getElementById('importanceCol');
+
+        if (mode === 'en') {
+            avgGradeCol.style.display = 'none';
+            importanceCol.classList.remove('col-md-7');
+            importanceCol.classList.add('col-md-12');
+        } else {
+            avgGradeCol.style.display = '';
+            importanceCol.classList.remove('col-md-12');
+            importanceCol.classList.add('col-md-7');
+        }
 
         if (mode === 'en') {
             tabEn.classList.add('active');
@@ -390,6 +402,8 @@
         }
         interp.innerHTML = text;
     }
+
+    setMode(currentMode);
 </script>
 </body>
 </html>

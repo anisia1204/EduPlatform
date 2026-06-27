@@ -7,6 +7,8 @@
     <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css" rel="stylesheet">
     <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600&family=DM+Serif+Display&display=swap" rel="stylesheet">
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2.2.0"></script>
     <style>
         :root { --navy:#0f2240; --teal:#0d9488; --slate:#64748b; --bg:#f1f5f9; --border:#e2e8f0; --urban:#0d9488; --rural:#ea580c; }
         body { background: var(--bg); font-family: 'DM Sans', sans-serif; color: #1e293b; }
@@ -173,6 +175,7 @@
 
         new Chart(document.getElementById(canvasId), {
             type: 'line',
+            plugins: [ChartDataLabels],
             data: {
                 labels: years,
                 datasets: [
@@ -186,6 +189,14 @@
             },
             options: {
                 responsive: true,
+                plugins: {
+                    datalabels: {
+                        align: 'top', offset: 6,
+                        color: ctx => ctx.dataset.borderColor,
+                        font: { weight: 'bold', size: 11 },
+                        formatter: v => v === null ? '' : v.toFixed(2)
+                    }
+                },
                 scales: {
                     y: { min: yMin, max: yMax, grid: { color: '#f1f5f9' } },
                     x: { grid: { display: false } }

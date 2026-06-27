@@ -27,9 +27,6 @@ public class EnResult {
     @Column(name = "county", length = 5)
     private String county;
 
-    @Column(name = "school_unit")
-    private String schoolUnit;
-
     @Column(name = "romanian_grade")
     private Double romanianGrade;
 

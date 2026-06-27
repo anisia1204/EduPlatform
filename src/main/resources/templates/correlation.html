@@ -7,6 +7,8 @@
     <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css" rel="stylesheet">
     <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600&family=DM+Serif+Display&display=swap" rel="stylesheet">
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2.2.0"></script>
     <style>
         :root { --navy:#0f2240; --purple:#7c3aed; --slate:#64748b; --bg:#f1f5f9; --border:#e2e8f0; }
         body { background: var(--bg); font-family: 'DM Sans', sans-serif; color: #1e293b; }
@@ -166,6 +168,7 @@
     if (validCohorts.length > 0) {
         new Chart(document.getElementById('chartCorr'), {
             type: 'bar',
+            plugins: [ChartDataLabels],
             data: {
                 labels: validCohorts.map(c => `EN${c.enYear}→BAC${c.bacYear}`),
                 datasets: [{ label: 'Pearson r',
@@ -176,7 +179,15 @@
                                 c.pearsonCoefficient >= 0.3 ? 'rgba(217,119,6,0.8)' : 'rgba(148,163,184,0.8)'),
                     borderRadius: 4 }]
             },
-            options: { responsive: true, plugins: { legend: { display: false } },
+            options: { responsive: true,
+                plugins: {
+                    legend: { display: false },
+                    datalabels: {
+                        anchor: 'end', align: 'end', offset: 2,
+                        color: '#1e293b', font: { weight: 'bold', size: 12 },
+                        formatter: v => v.toFixed(3)
+                    }
+                },
                 scales: { y: { min: 0, max: 1, grid: { color: '#f1f5f9' }, title: { display: true, text: 'Pearson r' } },
                     x: { grid: { display: false } } }
             }
